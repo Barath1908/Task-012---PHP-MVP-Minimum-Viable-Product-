@@ -1,0 +1,113 @@
+# ============================================================
+#  .htaccess — Healthcare Management System API
+#  Project  : Task ID 012
+#  Purpose  : URL rewrite to public/index.php (API Gateway)
+#  Location : backend/ (project root)
+#  Stack    : Core PHP + MySQL + JWT + AES + CSRF
+# ============================================================
+
+# -- Enable Rewrite Engine -----------------------------------
+Options -Indexes
+RewriteEngine On
+
+# ============================================================
+#  SECTION 1 — Block Direct Access to Sensitive Files
+#  .env, config.php, database.php must never be public.
+# ============================================================
+
+# Block .env file
+<Files ".env">
+    Require all denied
+</Files>
+
+# Block all .php files except public/index.php
+<FilesMatch "^(?!index\.php$).*\.php$">
+    Require all denied
+</FilesMatch>
+
+# Block access to hidden files (. files)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block storage directory (logs, sessions)
+RewriteRule ^storage/ - [F,L]
+
+# Block app directory (Config, Security, Controllers, Services)
+RewriteRule ^app/ - [F,L]
+
+# Block vendor directory
+RewriteRule ^vendor/ - [F,L]
+
+# ============================================================
+#  SECTION 2 — CORS Preflight (OPTIONS) Pass-Through
+#  OPTIONS requests must reach index.php for CORS headers.
+# ============================================================
+
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ public/index.php [QSA,L]
+
+# ============================================================
+#  SECTION 3 — Route All API Requests to public/index.php
+#  Single entry point pattern as per architecture doc.
+#  All requests → public/index.php → api.php → Controller
+# ============================================================
+
+# Skip if request is for an actual existing file
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# Skip if request is for an actual existing directory
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite everything else to the API gateway
+RewriteRule ^(.*)$ public/index.php [QSA,L]
+
+# ============================================================
+#  SECTION 4 — Security Headers
+#  Protect against common web vulnerabilities.
+# ============================================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header always set X-Frame-Options "DENY"
+
+    # XSS protection (legacy browsers)
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Remove server signature
+    Header unset Server
+    Header unset X-Powered-By
+
+    # HSTS — force HTTPS (enable in production only)
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# ============================================================
+#  SECTION 5 — PHP Settings (production hardening)
+# ============================================================
+
+<IfModule mod_php.c>
+    # Hide PHP version from headers
+    php_flag expose_php Off
+
+    # Disable dangerous PHP functions
+    php_value disable_functions "exec,passthru,shell_exec,system,proc_open,popen"
+
+    # Session security (matches config.php SESSION settings)
+    php_flag session.cookie_httponly On
+    php_flag session.use_only_cookies On
+    php_flag session.cookie_secure Off
+    # Note: set cookie_secure On in production (HTTPS only)
+</IfModule>
+
+# ============================================================
+#  SECTION 6 — Disable Directory Listing
+# ============================================================
+
+Options -Indexes -MultiViews
