@@ -56,14 +56,27 @@ if (!empty($rawBody)) {
     $input = json_decode($rawBody, associative: true) ?? [];
 }
 
-// Decrypt payload if present
+// TEMP: Skip AES decrypt for Postman testing
+// payload is sent as plain JSON object directly
 if (!empty($input['payload'])) {
-    try {
-        $aes  = new AES();
-        $body = $aes->decryptToArray($input['payload']);
-    } catch (Throwable $e) {
-        error_log('[Gateway] AES decrypt failed: ' . $e->getMessage());
-        Response::error('Invalid or malformed request payload.', HTTP_BAD_REQUEST);
+    if (is_array($input['payload'])) {
+        // payload sent as JSON object directly (Postman testing)
+        $body = $input['payload'];
+    } elseif (is_string($input['payload'])) {
+        // try JSON decode first (plain string)
+        $decoded = json_decode($input['payload'], true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $body = $decoded;
+        } else {
+            // real AES encrypted string — decrypt it
+            try {
+                $aes  = new AES();
+                $body = $aes->decryptToArray($input['payload']);
+            } catch (Throwable $e) {
+                error_log('[Gateway] AES decrypt failed: ' . $e->getMessage());
+                Response::error('Invalid or malformed request payload.', HTTP_BAD_REQUEST);
+            }
+        }
     }
 }
 
