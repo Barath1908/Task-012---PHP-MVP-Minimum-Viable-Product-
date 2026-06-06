@@ -5,39 +5,52 @@
 //  Handles: register, login, logout, token refresh
 //  Interacts directly with MySQL via PDO (no repository).
 //  All DB queries are tenant-scoped.
+//  AES Encryption:
+//    users    → first_name, last_name, email, phone encrypted
+//    patients → first_name, last_name, email, phone encrypted
+//  email_hash (SHA-256) used for searching users by email
 // ============================================================
 
 require_once __DIR__ . '/../Config/database.php';
 require_once __DIR__ . '/../Security/JWT.php';
 require_once __DIR__ . '/../Security/Hash.php';
 require_once __DIR__ . '/../Security/CSRF.php';
+require_once __DIR__ . '/../Security/AES.php';
 
 class AuthService
 {
     private PDO $db;
     private JWT $jwt;
+    private AES $aes;
 
     // --------------------------------------------------------
     public function __construct()
     {
         $this->db  = Database::getConnection();
         $this->jwt = new JWT();
+        $this->aes = new AES();
     }
 
     // ========================================================
     //  REGISTER
     //  1. Validate tenant exists and is active
-    //  2. Check email uniqueness within tenant
-    //  3. Hash password
-    //  4. Insert user
-    //  5. Generate tokens → store refresh token in DB
+    //  2. Check email uniqueness within tenant (via hash)
+    //  3. Role exists check
+    //  4. Hash password
+    //  5. Insert user (AES encrypted fields)
+    //  6. Auto-insert into staff or patients table
+    //  7. Load user and generate tokens
     //  Returns: [access_token, refresh_token, user]
     // ========================================================
     public function register(array $data): array
     {
-        $tenantId = (int)$data['tenant_id'];
-        $roleId   = (int)$data['role_id'];
-        $email    = strtolower(trim($data['email']));
+        $tenantId  = (int)$data['tenant_id'];
+        $roleId    = (int)$data['role_id'];
+        $email     = strtolower(trim($data['email']));
+        $emailHash = hash('sha256', $email);
+        $firstName = trim($data['first_name']);
+        $lastName  = trim($data['last_name']);
+        $phone     = $data['phone'] ?? null;
 
         // 1. Tenant check
         $tenant = $this->findActiveTenant($tenantId);
@@ -45,8 +58,8 @@ class AuthService
             throw new RuntimeException('Invalid or inactive tenant.', HTTP_BAD_REQUEST);
         }
 
-        // 2. Email uniqueness within tenant
-        if ($this->emailExistsInTenant($email, $tenantId)) {
+        // 2. Email uniqueness check via hash
+        if ($this->emailExistsInTenant($emailHash, $tenantId)) {
             throw new RuntimeException('Email already registered in this tenant.', HTTP_CONFLICT);
         }
 
@@ -59,21 +72,22 @@ class AuthService
         // 4. Hash password
         $passwordHash = Hash::make($data['password']);
 
-        // 5. Insert user
+        // 5. Insert user — all sensitive fields AES encrypted
         $stmt = $this->db->prepare("
             INSERT INTO users
-                (tenant_id, role_id, first_name, last_name, email, phone, password_hash, created_by)
+                (tenant_id, role_id, first_name, last_name, email, email_hash, phone, password_hash, created_by)
             VALUES
-                (:tenant_id, :role_id, :first_name, :last_name, :email, :phone, :password_hash, NULL)
+                (:tenant_id, :role_id, :first_name, :last_name, :email, :email_hash, :phone, :password_hash, NULL)
         ");
 
         $stmt->execute([
             ':tenant_id'     => $tenantId,
             ':role_id'       => $roleId,
-            ':first_name'    => trim($data['first_name']),
-            ':last_name'     => trim($data['last_name']),
-            ':email'         => $email,
-            ':phone'         => $data['phone'] ?? null,
+            ':first_name'    => $this->aes->encrypt($firstName),
+            ':last_name'     => $this->aes->encrypt($lastName),
+            ':email'         => $this->aes->encrypt($email),
+            ':email_hash'    => $emailHash,
+            ':phone'         => !empty($phone) ? $this->aes->encrypt($phone) : null,
             ':password_hash' => $passwordHash,
         ]);
 
@@ -91,7 +105,7 @@ class AuthService
             ]);
         } else {
             // Patient → patients table
-            // first_name and last_name required by patients table schema
+            // first_name, last_name, email, phone AES encrypted
             $this->db->prepare("
                 INSERT INTO patients
                     (user_id, tenant_id, first_name, last_name, phone, email, is_active)
@@ -100,36 +114,37 @@ class AuthService
             ")->execute([
                 ':user_id'    => $userId,
                 ':tenant_id'  => $tenantId,
-                ':first_name' => trim($data['first_name']),
-                ':last_name'  => trim($data['last_name']),
-                ':phone'      => $data['phone'] ?? null,
-                ':email'      => $email,
+                ':first_name' => $this->aes->encrypt($firstName),
+                ':last_name'  => $this->aes->encrypt($lastName),
+                ':phone'      => !empty($phone) ? $this->aes->encrypt($phone) : null,
+                ':email'      => $this->aes->encrypt($email),
             ]);
         }
 
-        // 6. Load user with role name for token payload
+        // 7. Load user with role name for token payload
         $user = $this->findUserById($userId);
 
-        // 7. Generate tokens
+        // 8. Generate tokens
         return $this->issueTokens($user);
     }
 
     // ========================================================
     //  LOGIN
-    //  1. Find user by email + tenant
+    //  1. Find user by email_hash + tenant
     //  2. Verify password
     //  3. Check user is active
     //  4. Rehash if needed
-    //  5. Revoke old refresh tokens for this user
+    //  5. Revoke old refresh tokens
     //  6. Issue new tokens
     // ========================================================
     public function login(array $data): array
     {
-        $email    = strtolower(trim($data['email']));
-        $tenantId = (int)$data['tenant_id'];
+        $email     = strtolower(trim($data['email']));
+        $emailHash = hash('sha256', $email);
+        $tenantId  = (int)$data['tenant_id'];
 
-        // 1. Find user
-        $user = $this->findUserByEmailAndTenant($email, $tenantId);
+        // 1. Find user by email hash — fast single row lookup
+        $user = $this->findUserByEmailHashAndTenant($emailHash, $tenantId);
 
         if (!$user) {
             throw new RuntimeException('Invalid credentials.', HTTP_UNAUTHORIZED);
@@ -152,7 +167,7 @@ class AuthService
                      ->execute([$newHash, $user['id']]);
         }
 
-        // 5. Revoke all previous refresh tokens for this user
+        // 5. Revoke all previous refresh tokens
         $this->revokeAllRefreshTokens((int)$user['id']);
 
         // 6. Issue tokens
@@ -209,7 +224,7 @@ class AuthService
     //  LOGOUT
     //  1. Revoke all refresh tokens for user
     //  2. Clear access token from session
-    //  3. Regenerate CSRF token
+    //  3. Clear CSRF token
     // ========================================================
     public function logout(int $userId): void
     {
@@ -222,14 +237,12 @@ class AuthService
     //  PRIVATE HELPERS
     // ========================================================
 
-    // Issue access + refresh tokens, store in session/DB
     private function issueTokens(array $user): array
     {
         $accessToken  = $this->jwt->generateAccessToken($user);
         $refreshToken = $this->jwt->generateRefreshToken($user);
 
-        // Fix 5: Regenerate session ID before storing token
-        // Prevents session fixation attacks after successful auth
+        // Regenerate session ID — prevents session fixation attacks
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
@@ -240,12 +253,9 @@ class AuthService
         // Store hashed refresh token in DB
         $this->storeRefreshToken((int)$user['id'], $refreshToken);
 
-        // Regenerate CSRF token on every new login/refresh
-        // Note: csrf_token is NOT returned here — Response wrapper
-        // already sends it in the outer envelope { csrf_token, payload }
+        // Regenerate CSRF — Response wrapper sends it in outer envelope
         CSRF::regenerate();
 
-        // Fix 3: csrf_token removed from data payload — no duplication
         return [
             'access_token'  => $accessToken,
             'refresh_token' => $refreshToken,
@@ -307,36 +317,53 @@ class AuthService
             LIMIT 1
         ");
         $stmt->execute([$id]);
-        return $stmt->fetch();
+        $user = $stmt->fetch();
+
+        if ($user) {
+            $user = $this->decryptUserFields($user);
+        }
+
+        return $user;
     }
 
-    private function findUserByEmailAndTenant(string $email, int $tenantId): array|false
+    private function findUserByEmailHashAndTenant(string $emailHash, int $tenantId): array|false
     {
+        // Search by SHA-256 hash — fast and secure
         $stmt = $this->db->prepare("
             SELECT u.*, r.name AS role
             FROM users u
             JOIN roles r ON r.id = u.role_id
-            WHERE u.email = ? AND u.tenant_id = ? AND u.deleted_at IS NULL
+            WHERE u.email_hash = ? AND u.tenant_id = ? AND u.deleted_at IS NULL
             LIMIT 1
         ");
-        $stmt->execute([$email, $tenantId]);
-        return $stmt->fetch();
+        $stmt->execute([$emailHash, $tenantId]);
+        $user = $stmt->fetch();
+
+        if ($user) {
+            $user = $this->decryptUserFields($user);
+        }
+
+        return $user;
     }
 
-    private function emailExistsInTenant(string $email, int $tenantId): bool
+    private function emailExistsInTenant(string $emailHash, int $tenantId): bool
     {
+        // Check by SHA-256 hash — never store or compare plain email
         $stmt = $this->db->prepare("
             SELECT COUNT(*) FROM users
-            WHERE email = ? AND tenant_id = ? AND deleted_at IS NULL
+            WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL
         ");
-        $stmt->execute([$email, $tenantId]);
+        $stmt->execute([$emailHash, $tenantId]);
         return (int)$stmt->fetchColumn() > 0;
     }
 
     private function findActiveTenant(int $id): array|false
     {
+        // tenants columns are plain text — no decryption needed
         $stmt = $this->db->prepare("
-            SELECT * FROM tenants WHERE id = ? AND is_active = 1 AND deleted_at IS NULL LIMIT 1
+            SELECT * FROM tenants
+            WHERE id = ? AND is_active = 1 AND deleted_at IS NULL
+            LIMIT 1
         ");
         $stmt->execute([$id]);
         return $stmt->fetch();
@@ -347,5 +374,41 @@ class AuthService
         $stmt = $this->db->prepare("SELECT * FROM roles WHERE id = ? LIMIT 1");
         $stmt->execute([$id]);
         return $stmt->fetch();
+    }
+
+    // --------------------------------------------------------
+    //  decryptUserFields()
+    //  Decrypts all AES encrypted fields of a user row.
+    //  Called after every user fetch from DB.
+    // --------------------------------------------------------
+    private function decryptUserFields(array $user): array
+    {
+        try {
+            $user['first_name'] = $this->aes->decrypt($user['first_name']);
+        } catch (Throwable $e) {
+            // already plain text — old record
+        }
+
+        try {
+            $user['last_name'] = $this->aes->decrypt($user['last_name']);
+        } catch (Throwable $e) {
+            // already plain text — old record
+        }
+
+        try {
+            $user['email'] = $this->aes->decrypt($user['email']);
+        } catch (Throwable $e) {
+            // already plain text — old record
+        }
+
+        if (!empty($user['phone'])) {
+            try {
+                $user['phone'] = $this->aes->decrypt($user['phone']);
+            } catch (Throwable $e) {
+                // already plain text — old record
+            }
+        }
+
+        return $user;
     }
 }
