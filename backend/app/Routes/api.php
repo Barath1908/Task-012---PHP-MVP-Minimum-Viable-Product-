@@ -17,19 +17,19 @@ $scriptDir     = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
 // Strip base path prefix
 $uri  = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 
-error_log('[DEBUG URI] requestUri=' . $requestUri . ' | uri=' . $uri);
+//error_log('[DEBUG URI] requestUri=' . $requestUri . ' | uri=' . $uri);
 
 // ============================================================
 //  AUTH ROUTES (public — no AuthMiddleware)
 // ============================================================
 $auth = new AuthController();
 
-// TEMP DEBUG
+/*// TEMP DEBUG
 file_put_contents('C:/wamp64/www/task12-branch3/debug.txt',
     'uri=' . $uri . "\n" .
     'method=' . $requestMethod . "\n" .
     'body=' . json_encode($body) . "\n"
-);
+);*/
 
 // POST /auth/register
 if ($uri === '/auth/register' && $requestMethod === 'POST') {
