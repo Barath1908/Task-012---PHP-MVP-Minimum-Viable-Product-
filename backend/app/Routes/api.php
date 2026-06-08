@@ -43,7 +43,7 @@ if ($uri === '/auth/login' && $requestMethod === 'POST') {
 
 // POST /auth/refresh
 if ($uri === '/auth/refresh' && $requestMethod === 'POST') {
-    $auth->refresh($body);
+    $auth->refresh();
 }
 
 // POST /auth/logout  (protected)

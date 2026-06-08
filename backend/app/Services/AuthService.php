@@ -227,8 +227,16 @@ class AuthService
     //  4. Revoke old token
     //  5. Issue new access + refresh tokens
     // ========================================================
-    public function refresh(string $rawToken): array
+    public function refresh(): array
     {
+        // Read refresh token from HttpOnly cookie
+        // Never from request body — cookie is automatic
+        $rawToken = $_COOKIE['refresh_token'] ?? null;
+
+        if (!$rawToken) {
+            throw new RuntimeException('Refresh token missing.', HTTP_UNAUTHORIZED);
+        }
+
         // 1. Validate JWT structure + signature + expiry
         try {
             $payload = $this->jwt->validate($rawToken);
@@ -276,6 +284,18 @@ class AuthService
         $this->revokeAllRefreshTokens($userId);
         unset($_SESSION['access_token']);
         CSRF::clear();
+        // Clear refresh token cookie
+        setcookie(
+            'refresh_token',
+            '',
+            [
+                'expires'  => time() - 3600,  // expire immediately
+                'path'     => '/',
+                'httponly' => true,
+                'secure'   => false,
+                'samesite' => 'Strict'
+            ]
+        );
     }
 
     // ========================================================
@@ -301,9 +321,22 @@ class AuthService
         // Regenerate CSRF — Response wrapper sends it in outer envelope
         CSRF::regenerate();
 
+        // Store refresh token in HttpOnly cookie
+        // JavaScript cannot read this — XSS protection
+        setcookie(
+            'refresh_token',           // cookie name
+            $refreshToken,             // raw token value
+            [
+                'expires'  => time() + REFRESH_TOKEN_EXPIRY,
+                'path'     => '/',
+                'httponly' => true,    // JavaScript cannot access
+                'secure'   => false,   // set true in production (HTTPS)
+                'samesite' => 'Strict' // CSRF protection
+            ]
+        );
+
         return [
             'access_token'  => $accessToken,
-            'refresh_token' => $refreshToken,
             'user'          => [
                 'id'        => $user['id'],
                 'tenant_id' => $user['tenant_id'],

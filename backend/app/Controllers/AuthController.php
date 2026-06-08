@@ -78,17 +78,11 @@ class AuthController
     //  Public. Exchanges refresh token for new access token.
     //  Expects: { "refresh_token": "..." } in decrypted body.
     // ========================================================
-    public function refresh(array $body): void
+    public function refresh(): void
     {
-        $validator = new Validator($body);
-        $validator->required(['refresh_token']);
-
-        if ($validator->fails()) {
-            Response::validationError($validator->errors());
-        }
-
+        // No body needed — refresh token comes from HttpOnly cookie
         try {
-            $result = $this->service->refresh($body['refresh_token']);
+            $result = $this->service->refresh();
             Response::success($result, 'Token refreshed successfully.');
         } catch (RuntimeException $e) {
             Response::unauthorized($e->getMessage());
