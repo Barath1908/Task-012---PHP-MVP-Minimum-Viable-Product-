@@ -113,10 +113,16 @@ class Response
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
 
+        // Send CSRF token in response header
+        $csrfToken = CSRF::getToken() ?? '';
+        if (!empty($csrfToken)) {
+            header('X-CSRF-Token: ' . $csrfToken);
+        }
+
         // TEMP: skip encryption for Postman testing
         echo json_encode([
-            'csrf_token' => CSRF::getToken() ?? '',
-            'payload'    => $body,
+            'csrf_token' => $csrfToken,
+            'payload' => $body,
         ]);
 
         exit;
