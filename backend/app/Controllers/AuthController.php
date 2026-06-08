@@ -148,4 +148,32 @@ class AuthController
         ]);
         exit;
     }
+
+    // ========================================================
+    //  POST /auth/change-password
+    //  Protected. Validates current password → updates to new.
+    // ========================================================
+    public function changePassword(array $body): void
+    {
+        $validator = new Validator($body);
+        $validator->required(['current_password', 'new_password'])
+                ->min('new_password', 8);
+
+        if ($validator->fails()) {
+            Response::validationError($validator->errors());
+        }
+
+        $userId = AuthMiddleware::userId();
+
+        try {
+            $this->service->changePassword(
+                $userId,
+                $body['current_password'],
+                $body['new_password']
+            );
+            Response::success([], 'Password changed successfully.');
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), $e->getCode() ?: HTTP_BAD_REQUEST);
+        }
+    }
 }

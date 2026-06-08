@@ -39,7 +39,7 @@ session_start();
 // -- CORS Headers --------------------------------------------
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -80,11 +80,20 @@ if (!empty($input['payload'])) {
     }
 }
 
-// Extract CSRF token from outer envelope
-$csrfToken = $input['csrf_token'] ?? '';
+// Extract CSRF token from request header
+$csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
 // -- CSRF Validation -----------------------------------------
-CsrfMiddleware::handle($csrfToken);
+// Skip CSRF for register and login — token not yet available
+$requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptDir     = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+$currentUri    = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
+
+$csrfExcluded = ['/auth/register', '/auth/login'];
+
+if (!in_array($currentUri, $csrfExcluded, true)) {
+    CsrfMiddleware::handle($csrfToken);
+}
 
 // -- Route ---------------------------------------------------
 /*file_put_contents('C:/wamp64/www/task12-branch3/debug.txt',

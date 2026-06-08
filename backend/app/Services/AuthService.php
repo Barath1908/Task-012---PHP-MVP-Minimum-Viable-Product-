@@ -124,8 +124,14 @@ class AuthService
         // 7. Load user with role name for token payload
         $user = $this->findUserById($userId);
 
-        // 8. Generate tokens
-        return $this->issueTokens($user);
+        // 8. Return user details — no tokens on register
+        return [
+            'id'        => $user['id'],
+            'tenant_id' => $user['tenant_id'],
+            'role'      => $user['role'],
+            'email'     => $user['email'],
+            'fullName'  => $user['first_name'] . ' ' . $user['last_name'],
+        ];
     }
 
     // ========================================================
@@ -172,6 +178,45 @@ class AuthService
 
         // 6. Issue tokens
         return $this->issueTokens($user);
+    }
+
+    // ========================================================
+    //  CHANGE PASSWORD
+    //  1. Find user by id
+    //  2. Verify current password
+    //  3. Check new password is different
+    //  4. Hash new password
+    //  5. Update in DB
+    //  6. Revoke all refresh tokens — force re-login on other devices
+    // ========================================================
+    public function changePassword(int $userId, string $currentPassword, string $newPassword): void
+    {
+        // 1. Find user
+        $user = $this->findUserById($userId);
+        if (!$user) {
+            throw new RuntimeException('User not found.', HTTP_NOT_FOUND);
+        }
+
+        // 2. Verify current password
+        if (!Hash::verify($currentPassword, $user['password_hash'])) {
+            throw new RuntimeException('Current password is incorrect.', HTTP_UNAUTHORIZED);
+        }
+
+        // 3. Check new password is not same as current
+        if (Hash::verify($newPassword, $user['password_hash'])) {
+            throw new RuntimeException('New password must be different from current password.', HTTP_BAD_REQUEST);
+        }
+
+        // 4. Hash new password
+        $newHash = Hash::make($newPassword);
+
+        // 5. Update password in DB
+        $this->db->prepare("
+            UPDATE users SET password_hash = ? WHERE id = ?
+        ")->execute([$newHash, $userId]);
+
+        // 6. Revoke all refresh tokens — forces re-login on all other devices
+        $this->revokeAllRefreshTokens($userId);
     }
 
     // ========================================================

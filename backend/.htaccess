@@ -84,6 +84,9 @@ RewriteRule ^(.*)$ public/index.php [QSA,L]
     Header unset Server
     Header unset X-Powered-By
 
+    # Expose CSRF token header to React frontend
+    Header always set Access-Control-Expose-Headers "X-CSRF-Token"
+
     # HSTS — force HTTPS (enable in production only)
     # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
 </IfModule>

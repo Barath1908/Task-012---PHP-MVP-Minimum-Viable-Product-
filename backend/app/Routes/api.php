@@ -52,10 +52,16 @@ if ($uri === '/auth/logout' && $requestMethod === 'POST') {
     $auth->logout();
 }
 
-// GET /auth/csrf-token  (public — issued on app load)
+// POST /auth/change-password (protected)
+if ($uri === '/auth/change-password' && $requestMethod === 'POST') {
+    AuthMiddleware::handle();
+    $auth->changePassword($body);
+}
+
+/*// GET /auth/csrf-token  (public — issued on app load)
 if ($uri === '/auth/csrf-token' && $requestMethod === 'GET') {
     $auth->csrfToken();
-}
+}*/
 
 // ============================================================
 //  PATIENT ROUTES — placeholder (Team Member 2)

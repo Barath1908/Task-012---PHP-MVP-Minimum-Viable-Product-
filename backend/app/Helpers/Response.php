@@ -121,34 +121,5 @@ class Response
 
         exit;
     }
-/* 
-    private static function send(array $body, int $code): void
-    {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: DENY');
-
-        try {
-            $aes = new AES();
-            $encrypted = $aes->encrypt($body);
-
-            echo json_encode([
-                'csrf_token' => CSRF::getToken() ?? '',
-                'payload'    => $encrypted,
-            ]);
-        } catch (Throwable $e) {
-            // Fallback: if AES itself fails, return plain error
-            error_log('[Response] Encryption failed: ' . $e->getMessage());
-            http_response_code(HTTP_INTERNAL_SERVER_ERROR);
-            echo json_encode([
-                'status'  => STATUS_ERROR,
-                'message' => 'Response encryption error',
-            ]);
-        }
-
-        exit;
-    }
-        */
    
 }
