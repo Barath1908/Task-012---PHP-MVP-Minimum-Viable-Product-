@@ -129,7 +129,7 @@ class AuthController
         }
     }
 
-    // ========================================================
+    /*/ ========================================================
     //  GET /auth/csrf-token
     //  Public. Called on app load to get initial CSRF token.
     //  Returns a fresh CSRF token (unencrypted — it's public).
@@ -147,7 +147,7 @@ class AuthController
             'csrf_token' => $token,
         ]);
         exit;
-    }
+    }*/
 
     // ========================================================
     //  POST /auth/change-password
