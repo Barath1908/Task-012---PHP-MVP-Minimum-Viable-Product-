@@ -20,7 +20,7 @@ require_once __DIR__ . '/../app/Middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../app/Middleware/CsrfMiddleware.php';
 
 // -- Session -------------------------------------------------
-ini_set('session.gc_maxlifetime', (string)SESSION_LIFETIME);
+
 session_name(SESSION_NAME);
 
 session_start();
@@ -52,9 +52,7 @@ if (!empty($rawBody)) {
 if (!empty($input['payload'])) {
     if (is_array($input['payload'])) {
         $body = $input['payload'];
-    } elseif (is_string($input['payload'])) {
-        $body = json_decode($input['payload'], true) ?? [];
-    }
+    } 
 }
 
 // Extract CSRF token from request header

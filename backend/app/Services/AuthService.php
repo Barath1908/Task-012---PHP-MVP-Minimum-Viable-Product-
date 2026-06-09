@@ -75,9 +75,9 @@ class AuthService
         // 5. Insert user — all sensitive fields AES encrypted
         $stmt = $this->db->prepare("
             INSERT INTO users
-                (tenant_id, role_id, first_name, last_name, email, email_hash, phone, password_hash, created_by)
+                (tenant_id, role_id, first_name, last_name, email, email_hash, phone, password_hash)
             VALUES
-                (:tenant_id, :role_id, :first_name, :last_name, :email, :email_hash, :phone, :password_hash, NULL)
+                (:tenant_id, :role_id, :first_name, :last_name, :email, :email_hash, :phone, :password_hash)
         ");
 
         $stmt->execute([
@@ -178,6 +178,11 @@ class AuthService
 
         // Generate CSRF token on login only
         CSRF::regenerate();
+        // Send new CSRF token in header — login response only
+        $csrfToken = CSRF::getToken();
+        if (!empty($csrfToken)) {
+            header('X-CSRF-Token: ' . $csrfToken);
+        }
 
         // 6. Issue tokens
         return $this->issueTokens($user);
@@ -285,7 +290,6 @@ class AuthService
     public function logout(int $userId): void
     {
         $this->revokeAllRefreshTokens($userId);
-        unset($_SESSION['access_token']);
         CSRF::clear();
         // Clear refresh token cookie
         setcookie(
@@ -427,7 +431,7 @@ class AuthService
     {
         // Check by SHA-256 hash — never store or compare plain email
         $stmt = $this->db->prepare("
-            SELECT COUNT(*) FROM users
+            SELECT COUNT id FROM users
             WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL
         ");
         $stmt->execute([$emailHash, $tenantId]);
