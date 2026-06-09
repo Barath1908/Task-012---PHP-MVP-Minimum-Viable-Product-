@@ -176,6 +176,9 @@ class AuthService
         // 5. Revoke all previous refresh tokens
         $this->revokeAllRefreshTokens((int)$user['id']);
 
+        // Generate CSRF token on login only
+        CSRF::regenerate();
+
         // 6. Issue tokens
         return $this->issueTokens($user);
     }
@@ -316,10 +319,6 @@ class AuthService
         // Store hashed refresh token in DB
         $this->storeRefreshToken((int)$user['id'], $refreshToken);
 
-        // Regenerate CSRF — Response wrapper sends it in outer envelope
-        CSRF::regenerate();
-        // Store CSRF issue time — used to validate expiry
-        $_SESSION['csrf_issued_at'] = time();
 
         // Store refresh token in HttpOnly cookie
         // JavaScript cannot read this — XSS protection

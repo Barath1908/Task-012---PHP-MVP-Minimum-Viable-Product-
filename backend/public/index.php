@@ -21,7 +21,6 @@ require_once __DIR__ . '/../app/Middleware/CsrfMiddleware.php';
 
 // -- Session -------------------------------------------------
 ini_set('session.gc_maxlifetime', (string)SESSION_LIFETIME);
-ini_set('session.cookie_lifetime', (string)SESSION_LIFETIME);
 session_name(SESSION_NAME);
 
 session_start();
