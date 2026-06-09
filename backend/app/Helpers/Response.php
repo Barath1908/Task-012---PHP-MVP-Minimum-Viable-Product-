@@ -115,9 +115,6 @@ class Response
 
         // Send CSRF token in response header
         $csrfToken = CSRF::getToken() ?? '';
-        if (!empty($csrfToken)) {
-            header('X-CSRF-Token: ' . $csrfToken);
-        }
 
         // TEMP: skip encryption for Postman testing
         echo json_encode([
