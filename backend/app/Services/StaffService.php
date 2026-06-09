@@ -50,6 +50,21 @@ class StaffService
             throw new RuntimeException('Invalid role.', HTTP_BAD_REQUEST);
         }
 
+        $stmt->execute([$data['role']]);
+        $role = $stmt->fetch();
+
+        if (!$role) {
+            throw new RuntimeException('Invalid role.', HTTP_BAD_REQUEST);
+        }
+
+        // Prevent patient from being created as staff
+        if (strtolower($data['role']) === 'patient') {
+            throw new RuntimeException(
+                'Patient role cannot be created as staff.',
+                HTTP_BAD_REQUEST
+            );
+        }
+
         $passwordHash = Hash::make($data['password']);
 
         // create user
