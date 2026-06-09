@@ -312,14 +312,14 @@ class AuthService
             session_regenerate_id(true);
         }
 
-        // Store access token in PHP session
-        $_SESSION['access_token'] = $accessToken;
 
         // Store hashed refresh token in DB
         $this->storeRefreshToken((int)$user['id'], $refreshToken);
 
         // Regenerate CSRF — Response wrapper sends it in outer envelope
         CSRF::regenerate();
+        // Store CSRF issue time — used to validate expiry
+        $_SESSION['csrf_issued_at'] = time();
 
         // Store refresh token in HttpOnly cookie
         // JavaScript cannot read this — XSS protection
