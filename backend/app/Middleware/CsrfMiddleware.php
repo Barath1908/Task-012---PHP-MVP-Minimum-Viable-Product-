@@ -33,12 +33,6 @@ class CsrfMiddleware
             Response::error('CSRF token missing.', HTTP_FORBIDDEN);
         }
 
-        // Check CSRF token age — must not exceed ACCESS_TOKEN_EXPIRY
-        $csrfIssuedAt = $_SESSION['csrf_issued_at'] ?? 0;
-        if ((time() - $csrfIssuedAt) > ACCESS_TOKEN_EXPIRY) {
-            CSRF::clear();
-            Response::error('CSRF token expired. Please login again.', HTTP_FORBIDDEN);
-        }
 
         if (!CSRF::validate($csrfToken)) {
             Response::error('CSRF token invalid or expired.', HTTP_FORBIDDEN);

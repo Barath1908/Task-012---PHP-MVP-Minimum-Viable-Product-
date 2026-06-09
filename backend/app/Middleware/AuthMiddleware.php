@@ -65,11 +65,7 @@ class AuthMiddleware
             return $payload;
 
         } catch (Throwable $e) {
-            // Token expired or tampered
-            // Clear CSRF too — forces fresh login
-            unset($_SESSION['access_token']);
-            CSRF::clear();
-            session_destroy();
+            
             Response::unauthorized($e->getMessage());
         }
     }
