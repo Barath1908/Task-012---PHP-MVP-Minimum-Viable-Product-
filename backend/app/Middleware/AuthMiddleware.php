@@ -25,9 +25,20 @@ class AuthMiddleware
     {
         self::ensureSession();
 
-        $token = $_SESSION['access_token'] ?? null;
+        // Read access token from Authorization header
+        // Format: Authorization: Bearer <token>
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? getallheaders()['Authorization']
+            ?? '';
 
-        if (!$token) {
+        if (empty($authHeader) || !str_starts_with($authHeader, 'Bearer ')) {
+            Response::unauthorized('Access token missing. Please login.');
+        }
+
+        $token = trim(substr($authHeader, 7)); // Remove "Bearer " prefix
+
+        if (empty($token)) {
             Response::unauthorized('Access token missing. Please login.');
         }
 
@@ -55,7 +66,10 @@ class AuthMiddleware
 
         } catch (Throwable $e) {
             // Token expired or tampered
+            // Clear CSRF too — forces fresh login
             unset($_SESSION['access_token']);
+            CSRF::clear();
+            session_destroy();
             Response::unauthorized($e->getMessage());
         }
     }

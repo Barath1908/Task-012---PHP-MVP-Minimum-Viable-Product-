@@ -8,6 +8,7 @@
 // ============================================================
 
 require_once __DIR__ . '/../Controllers/AuthController.php';
+require_once __DIR__ . '/../Controllers/DashboardController.php';
 
 // -- Parse URI -----------------------------------------------
 $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -23,6 +24,7 @@ $uri  = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 //  AUTH ROUTES (public — no AuthMiddleware)
 // ============================================================
 $auth = new AuthController();
+$dashboard = new DashboardController();
 
 /*// TEMP DEBUG
 file_put_contents('C:/wamp64/www/task12-branch3/debug.txt',
@@ -56,6 +58,19 @@ if ($uri === '/auth/logout' && $requestMethod === 'POST') {
 if ($uri === '/auth/change-password' && $requestMethod === 'POST') {
     AuthMiddleware::handle();
     $auth->changePassword($body);
+}
+
+// ============================================================
+//  DASHBOARD ROUTES
+//  Roles: Admin, Provider
+// ============================================================
+
+
+// GET /dashboard/summary
+if ($uri === '/dashboard/summary' && $requestMethod === 'GET') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER]);
+    $dashboard->getSummary();
 }
 
 /*// GET /auth/csrf-token  (public — issued on app load)
