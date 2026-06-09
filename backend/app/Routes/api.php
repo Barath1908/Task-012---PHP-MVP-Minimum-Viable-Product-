@@ -9,6 +9,12 @@
 
 require_once __DIR__ . '/../Controllers/AuthController.php';
 require_once __DIR__ . '/../Controllers/DashboardController.php';
+require_once __DIR__ . '/../Controllers/BillingController.php';
+require_once __DIR__ . '/../Controllers/PrescriptionController.php';
+require_once __DIR__ . '/../Controllers/MessageController.php';
+require_once __DIR__ . '/../Controllers/StaffController.php';
+require_once __DIR__ . '/../Controllers/PatientController.php';
+require_once __DIR__ . '/../Controllers/AppointmentController.php';
 
 // -- Parse URI -----------------------------------------------
 $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -18,20 +24,18 @@ $scriptDir     = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
 // Strip base path prefix
 $uri  = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 
-//error_log('[DEBUG URI] requestUri=' . $requestUri . ' | uri=' . $uri);
-
 // ============================================================
 //  AUTH ROUTES (public — no AuthMiddleware)
 // ============================================================
 $auth = new AuthController();
 $dashboard = new DashboardController();
+$billing = new BillingController();
+$prescription = new PrescriptionController();
+$message = new MessageController();
+$staff = new StaffController();
+$patientCtrl = new PatientController();
+$appointCtrl = new AppointmentController();
 
-/*// TEMP DEBUG
-file_put_contents('C:/wamp64/www/task12-branch3/debug.txt',
-    'uri=' . $uri . "\n" .
-    'method=' . $requestMethod . "\n" .
-    'body=' . json_encode($body) . "\n"
-);*/
 
 // POST /auth/register
 if ($uri === '/auth/register' && $requestMethod === 'POST') {
@@ -73,45 +77,422 @@ if ($uri === '/dashboard/summary' && $requestMethod === 'GET') {
     $dashboard->getSummary();
 }
 
-/*// GET /auth/csrf-token  (public — issued on app load)
-if ($uri === '/auth/csrf-token' && $requestMethod === 'GET') {
-    $auth->csrfToken();
-}*/
 
 // ============================================================
-//  PATIENT ROUTES — placeholder (Team Member 2)
-//  AuthMiddleware::handle() + allowRoles() will go here.
+//  PATIENT ROUTES
 // ============================================================
-// POST   /patients
-// GET    /patients
-// GET    /patients/{id}
-// PUT    /patients/{id}
-// DELETE /patients/{id}
+// POST /patients (Create)
+if ($uri === '/patients' && $requestMethod === 'POST') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse' ,'provider','nurse']);
+    $patientCtrl->create($body);
+}
+// GET /patients (Read All)
+if ($uri === '/patients' && $requestMethod === 'GET') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse' ,'provider','nurse']);
+    $patientCtrl->getAll();
+}
+// PUT /patients/{id} (Update)
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'PUT') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse' ,'provider','nurse']); 
+    $id = (int)substr($uri, strlen('/patients/'));
+    $patientCtrl->update($id, $body);
+}
+// DELETE /patients/{id} (Delete)
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse' ,'provider','nurse']); 
+    $id = (int)substr($uri, strlen('/patients/'));
+    $patientCtrl->delete($id);
+}
+// GET /patients/{id} (Read Single Record Da)
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['provider', 'nurse', 'Provider', 'Nurse']);
+    $id = (int)substr($uri, strlen('/patients/'));
+    $patientCtrl->getById($id);
+}
 
 // ============================================================
-//  APPOINTMENT ROUTES — placeholder (Team Member 2)
+//  APPOINTMENT & CALENDAR ROUTES
 // ============================================================
-// POST   /appointments
-// GET    /appointments
-// GET    /appointments/{id}
-// PUT    /appointments/{id}
-// DELETE /appointments/{id}
+// POST /appointments (Create with Conflict Validation Check)
+if ($uri === '/appointments' && $requestMethod === 'POST') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse', 'Patient','provider','nurse','patient']);
+    $appointCtrl->create($body);
+}
+// GET /appointments (Read All OR Range Query Filter for Calendar API da!)
+if ($uri === '/appointments' && $requestMethod === 'GET') {
+    AuthMiddleware::handle();
+    // Added open calendar dashboard access roles support context da macha
+    AuthMiddleware::allowRoles(['Admin', 'Receptionist', 'Provider', 'Nurse', 'admin', 'receptionist', 'provider', 'nurse']);
+    
+    // Capture optional query-string filters for calendar views (?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD)
+    $startDate = $_GET['start_date'] ?? null;
+    $endDate   = $_GET['end_date'] ?? null;
+    
+    $appointCtrl->getAll($startDate, $endDate);
+}
+// PUT /appointments/{id} (Update with Collision Validator Checks)
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'PUT') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse', 'Patient','provider','nurse','patient']); 
+    $id = (int)substr($uri, strlen('/appointments/'));
+    $appointCtrl->update($id, $body);
+}
+// DELETE /appointments/{id} (Delete / Cancel lifecycle logic)
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'DELETE') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Provider', 'Nurse', 'Patient','provider','nurse','patient']); 
+    $id = (int)substr($uri, strlen('/appointments/'));
+    $appointCtrl->delete($id);
+}
+// GET /appointments/{id} (Read Single Appointment / Tooltip Details API da)
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET') {
+    AuthMiddleware::handle();
+    AuthMiddleware::allowRoles(['Admin', 'Receptionist', 'Provider', 'Nurse', 'admin', 'receptionist', 'provider', 'nurse']);
+    $id = (int)substr($uri, strlen('/appointments/'));
+    $appointCtrl->getById($id);
+}
 
-// ============================================================
-//  PRESCRIPTION ROUTES — placeholder (Team Member 3)
-// ============================================================
 
-// ============================================================
-//  BILLING ROUTES — placeholder (Team Member 3)
-// ============================================================
+//  PRESCRIPTION ROUTES 
 
-// ============================================================
-//  STAFF ROUTES — placeholder
-// ============================================================
+// POST /auth/prescription
 
-// ============================================================
-//  DASHBOARD ROUTES — placeholder
-// ============================================================
+if ($uri === '/auth/prescription' && $requestMethod === 'POST') 
+{
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles( [ROLE_PROVIDER] );
+
+    $prescription->createPrescription($body);
+}
+
+// GET /auth/prescription/{id}  -- prescription_id
+
+if (preg_match('#^/auth/prescription/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'GET'
+) {
+    AuthMiddleware::handle();
+
+    $prescription->viewPrescription( (int)$matches[1] );
+}
+
+// PUT /auth/prescription/{id}/verify  -- prescription_id
+
+if ( preg_match('#^/auth/prescription/(\d+)/verify$#', $uri, $matches)
+    && $requestMethod === 'PUT'
+) {
+
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles( [ ROLE_PHARMACIST ] );
+
+    $prescription->verifyPrescription( (int)$matches[1] );
+}
+
+// PUT /auth/prescription/{id}/dispense  -- prescription_id
+
+if (preg_match('#^/auth/prescription/(\d+)/dispense$#', $uri, $matches)
+    && $requestMethod === 'PUT'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([ ROLE_PHARMACIST ]);
+
+    $prescription->dispensePrescription(
+        (int)$matches[1]
+    );
+}
+
+//  BILLING ROUTES 
+
+// POST /auth/billing/invoice
+if (
+    $uri === '/auth/billing/invoice'  && $requestMethod === 'POST')
+{
+
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER
+    ]);
+
+    $billing->createInvoice($body);
+}
+
+// GET /auth/billing/invoice
+if (
+    $uri === '/auth/billing/invoice'
+    && $requestMethod === 'GET'
+) {
+
+    AuthMiddleware::handle();
+
+     AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_PATIENT
+    ]);
+
+    $billing->listInvoices();
+}
+
+// GET /auth/billing/invoice/{id}  --- invoice_id
+if (
+    preg_match('#^/auth/billing/invoice/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'GET'
+) {
+
+    AuthMiddleware::handle();
+
+     AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_PATIENT
+    ]);
+
+    $billing->viewInvoice((int)$matches[1] );
+}
+
+// PUT /auth/billing/invoice/{id}  --- invoice_id
+
+if (preg_match('#^/auth/billing/invoice/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'PUT')
+ {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER
+    ]);
+
+    $billing->updateInvoice( (int)$matches[1], $body );
+}
+
+// DELETE /auth/billing/invoice/{id} --- invoice_id
+
+ if ( preg_match('#^/auth/billing/invoice/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'DELETE')
+  {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER
+    ]);
+
+    $billing->deleteInvoice((int)$matches[1]);
+}
+
+// POST /auth/billing/payment
+if (
+    $uri === '/auth/billing/payment'
+    && $requestMethod === 'POST'
+) {
+
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_PATIENT
+    ]);
+
+    $billing->recordPayment($body);
+}
+
+// PUT /auth/billing/payment/{id} -- payment_id
+
+if ( preg_match('#^/auth/billing/payment/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'PUT') 
+{
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER
+    ]);
+
+    $billing->updatePayment((int)$matches[1], $body);
+}
+
+// GET /auth/billing/summary
+if ( $uri === '/auth/billing/summary' && $requestMethod === 'GET') {
+
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER
+    ]);
+
+    $billing->summary();
+}
+
+// STAFF ROUTES
+
+// GET /auth/staff
+
+if ($uri === '/auth/staff'
+    && $requestMethod === 'GET'
+) {
+    AuthMiddleware::handle();
+
+    $staff->list();
+}
+
+// GET /auth/staff/{id}  -- user_id
+
+if (
+    preg_match('#^/auth/staff/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'GET'
+) {
+    AuthMiddleware::handle();
+
+    $staff->view( (int)$matches[1] );
+}
+
+// POST /auth/staff
+
+if ($uri === '/auth/staff' && $requestMethod === 'POST')
+{
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([ ROLE_ADMIN ]);
+
+    $staff->create($body);
+}
+
+// PUT /auth/staff/{id}  -- user_id
+
+if ( preg_match('#^/auth/staff/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'PUT')
+{
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([ ROLE_ADMIN ]);
+
+    $staff->update(
+        (int)$matches[1],
+        $body
+    );
+}
+
+// DELETE /auth/staff/{id} -- user_id
+
+if (
+    preg_match('#^/auth/staff/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'DELETE'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN
+    ]);
+
+    $staff->delete( (int)$matches[1] );
+}
+
+// COMMUNICATION ROUTES
+
+// POST /auth/message
+
+if ($uri === '/auth/message' && $requestMethod === 'POST')
+{
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_NURSE
+    ]);
+
+    $message->createMessage($body);
+}
+
+// GET /auth/message/{id}   --- msg_id
+
+if (
+    preg_match('#^/auth/message/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'GET'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_NURSE
+    ]);
+
+    $message->getMessage(
+        (int)$matches[1]
+    );
+}
+
+// GET /auth/message/appointment/{id}   -- appointment_id
+
+if (
+    preg_match(
+        '#^/auth/message/appointment/(\d+)$#',
+        $uri,
+        $matches
+    )
+    && $requestMethod === 'GET'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_NURSE
+    ]);
+
+    $message->getAppointmentMessages( (int)$matches[1] );
+}
+
+// PUT /auth/message/{id}/read  -- msg_id
+
+if (
+    preg_match(
+        '#^/auth/message/(\d+)/read$#',
+        $uri,
+        $matches
+    )
+    && $requestMethod === 'PUT'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_NURSE
+    ]);
+
+    $message->markAsRead( (int)$matches[1] );
+}
+
+// DELETE /auth/message/{id}   -- msg_id
+
+if (
+    preg_match('#^/auth/message/(\d+)$#', $uri, $matches)
+    && $requestMethod === 'DELETE'
+) {
+    AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([
+        ROLE_ADMIN,
+        ROLE_PROVIDER,
+        ROLE_NURSE
+    ]);
+
+    $message->deleteMessage( (int)$matches[1] );
+}
+
+
 
 // -- 404 fallback --------------------------------------------
 Response::notFound('Route not found.');
