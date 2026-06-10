@@ -45,7 +45,7 @@ class PrescriptionService
             )
             VALUES
             (
-                ?, ?, ?, ?, ?, ?, 'issued'
+                ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -55,7 +55,8 @@ class PrescriptionService
             $data['patient_id'],
             $data['provider_id'],
             $medications,
-            $instructions
+            $instructions,
+            INV_ISSUED
         ]);
 
         return [

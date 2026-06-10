@@ -34,13 +34,12 @@ class MessageService
                 tenant_id,
                 appointment_id,
                 sender_id,
-                receiver_id,
                 content,
                 is_read
             )
             VALUES
             (
-                ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?
             )
         ");
 
@@ -48,7 +47,6 @@ class MessageService
             $tenantId,
             $data['appointment_id'] ?? null,
             $userId,
-            $data['receiver_id'] ?? null,
             $content,
             $data['is_read'] ?? 0
         ]);

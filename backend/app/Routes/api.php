@@ -342,6 +342,8 @@ if ($uri === '/auth/staff'
 ) {
     AuthMiddleware::handle();
 
+    AuthMiddleware::allowRoles([ ROLE_ADMIN ]);
+
     $staff->list();
 }
 
@@ -352,6 +354,8 @@ if (
     && $requestMethod === 'GET'
 ) {
     AuthMiddleware::handle();
+
+    AuthMiddleware::allowRoles([ ROLE_ADMIN ]);
 
     $staff->view( (int)$matches[1] );
 }
@@ -390,9 +394,7 @@ if (
 ) {
     AuthMiddleware::handle();
 
-    AuthMiddleware::allowRoles([
-        ROLE_ADMIN
-    ]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN]);
 
     $staff->delete( (int)$matches[1] );
 }
