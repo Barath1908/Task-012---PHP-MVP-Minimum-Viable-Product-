@@ -1,6 +1,6 @@
 <?php
 
-// ============================================================
+/// ============================================================
 //  api.php — Route Definitions
 //  Parses URI + HTTP method and dispatches to controller.
 //  $body is available from index.php (decrypted payload).
