@@ -36,7 +36,7 @@ class PatientController {
     }
 
     public function getById(int $id): void {
-    $tenantId = AuthMiddleware::tenantId(); // Enforces isolation da
+    $tenantId = AuthMiddleware::tenantId(); // Enforces isolation
     
     try {
         $patient = $this->service->getPatientById($id, $tenantId);

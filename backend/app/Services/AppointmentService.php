@@ -23,14 +23,14 @@ class AppointmentService {
     }
 
     /**
-     * 🛑 CONFLICT VALIDATION ENGINE (Double Booking Blocker Logic da!)
+     * CONFLICT VALIDATION ENGINE (Double Booking Blocker Logic)
      * Rewritten with unique placeholder names to prevent native PDO parameter mapping bugs (HY093).
      */
     private function hasSchedulingConflict(int $tenantId, int $providerId, string $scheduledAt, int $durationMinutes, ?int $excludeAppointmentId = null): bool {
         $startTime = $scheduledAt;
         $endTime = date('Y-m-d H:i:s', strtotime($scheduledAt . " + {$durationMinutes} minutes"));
 
-        // Using unique parameter placeholders for each position to completely prevent HY093 bugs da!
+        // Using unique parameter placeholders for each position to completely prevent HY093 bugs
         $sql = "
             SELECT COUNT id FROM appointments 
             WHERE tenant_id = :tenant_id 
@@ -98,7 +98,7 @@ class AppointmentService {
     }
 
     /**
-     * FETCH APPOINTMENTS WITH OPTIONAL CALENDAR RANGE FILTERS DA!
+     * FETCH APPOINTMENTS WITH OPTIONAL CALENDAR RANGE FILTERS 
      */
     public function getAllAppointments(int $tenantId, int $userId, string $userRole, ?string $startDate = null, ?string $endDate = null): array {
         $sql = "SELECT * FROM appointments WHERE tenant_id = :tenant_id AND deleted_at IS NULL";
