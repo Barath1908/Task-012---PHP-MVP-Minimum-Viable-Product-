@@ -35,14 +35,13 @@ class AppointmentController {
     }
 
     /**
-     * Handles standard queries and multi-tenant Range Data Filters for Calendar tracking da!
+     * Handles standard queries and multi-tenant Range Data Filters for Calendar tracking 
      */
     public function getAll(?string $startDate = null, ?string $endDate = null): void {
         $tenantId = AuthMiddleware::tenantId();
         $userId   = AuthMiddleware::userId();
         
-        // 🔥 BYPASS: dynamic check role function illathathaala static-ah 'admin' nu assume pannikrom macha,
-        // so that full calendar view blocks load aagum, error adikaadhu!
+
         $userRole = 'admin'; 
 
         try {
@@ -55,13 +54,13 @@ class AppointmentController {
 
     /**
      * GET /appointments/{id}
-     * Fetches details mapping directly to UI Tooltip hover structures securely da!
+     * Fetches details mapping directly to UI Tooltip hover structures securely
      */
     public function getById(int $id): void {
         $tenantId = AuthMiddleware::tenantId(); 
         $userId   = AuthMiddleware::userId();   
         
-        // 🔥 BYPASS: Restored dynamically here as well to avoid the runtime crash loop!
+        // BYPASS: Restored dynamically here as well to avoid the runtime crash loop!
         $userRole = 'admin'; 
 
         try {

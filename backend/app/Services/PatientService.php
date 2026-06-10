@@ -74,7 +74,7 @@ class PatientService {
             return null;
         }
         
-        // Re-use our centralized helper to decrypt all 12 fields seamlessly da!
+        // Re-use our centralized helper to decrypt all 12 fields seamlessly
         return $this->decryptPatientFields($patient);
     }
 
@@ -130,7 +130,7 @@ class PatientService {
         foreach ($encryptedFields as $field) {
             if (!empty($row[$field])) {
                 try {
-                    // Uses our object property safely without throwing static errors da!
+                    // Uses our object property safely without throwing static errors
                     $row[$field] = $this->aes->decrypt($row[$field]);
                 } catch (Throwable $e) {
                     error_log("[PatientService] Decryption failed for field {$field}: " . $e->getMessage());

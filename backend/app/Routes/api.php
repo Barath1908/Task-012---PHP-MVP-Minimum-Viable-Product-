@@ -107,7 +107,7 @@ if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE') {
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->delete($id);
 }
-// GET /patients/{id} (Read Single Record Da)
+// GET /patients/{id} (Read Single Record)
 if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') {
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
@@ -124,10 +124,10 @@ if ($uri === '/appointments' && $requestMethod === 'POST') {
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
     $appointCtrl->create($body);
 }
-// GET /appointments (Read All OR Range Query Filter for Calendar API da!)
+// GET /appointments (Read All OR Range Query Filter for Calendar API)
 if ($uri === '/appointments' && $requestMethod === 'GET') {
     AuthMiddleware::handle();
-    // Added open calendar dashboard access roles support context da macha
+    // Added open calendar dashboard access roles support context
     AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
     
     // Capture optional query-string filters for calendar views (?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD)
@@ -150,7 +150,7 @@ if (str_starts_with($uri, '/appointments/') && $requestMethod === 'DELETE') {
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->delete($id);
 }
-// GET /appointments/{id} (Read Single Appointment / Tooltip Details API da)
+// GET /appointments/{id} (Read Single Appointment / Tooltip Details API)
 if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET') {
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
