@@ -317,8 +317,7 @@ class BillingService
 
     public function getSummary(int $tenantId): array 
     {
-        $stmt = $this->db->prepare("
-            SELECT COUNT id 
+        $stmt = $this->db->prepare("SELECT COUNT(id)
             FROM invoices
             WHERE tenant_id = ?
             AND deleted_at IS NULL
@@ -328,8 +327,7 @@ class BillingService
 
         $totalInvoices = (int)$stmt->fetchColumn();
 
-        $stmt = $this->db->prepare("
-            SELECT COUNT id
+        $stmt = $this->db->prepare("SELECT COUNT(id)
             FROM invoices
             WHERE
                 tenant_id = ?
