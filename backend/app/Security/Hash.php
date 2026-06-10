@@ -38,15 +38,6 @@ class Hash
         return password_verify($plain, $hash);
     }
 
-    // --------------------------------------------------------
-    //  needsRehash()
-    //  Returns true if hash was made with old cost/algo.
-    //  Call after login — rehash and update DB if true.
-    // --------------------------------------------------------
-    public static function needsRehash(string $hash): bool
-    {
-        return password_needs_rehash($hash, self::ALGO, self::OPTIONS);
-    }
 
     // --------------------------------------------------------
     //  generateRandom()
