@@ -43,12 +43,12 @@ class StaffService
             SELECT id FROM roles WHERE name = ? LIMIT 1
         ");
 
-        $stmt->execute([$data['role']]);
+        /*$stmt->execute([$data['role']]);
         $role = $stmt->fetch();
 
         if (!$role) {
             throw new RuntimeException('Invalid role.', HTTP_BAD_REQUEST);
-        }
+        }*/
 
         $stmt->execute([$data['role']]);
         $role = $stmt->fetch();
