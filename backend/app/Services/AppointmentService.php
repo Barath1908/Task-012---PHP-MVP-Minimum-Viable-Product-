@@ -102,14 +102,14 @@ class AppointmentService {
     public function getAllAppointments(int $tenantId, int $userId, string $userRole, ?string $startDate = null, ?string $endDate = null): array {
         $sql = "SELECT * FROM appointments WHERE tenant_id = :tenant_id AND deleted_at IS NULL";
 
-        // 🛡️ ROLE-BASED VISIBILITY FILTER
+        //ROLE-BASED VISIBILITY FILTER
         if ($userRole === 'provider' || $userRole === 'doctor') {
             $sql .= " AND provider_id = :user_id";
         } else if ($userRole === 'patient') {
             $sql .= " AND patient_id = :user_id";
         }
 
-        // 📅 DYNAMIC DATE RANGE FILTER
+        //DYNAMIC DATE RANGE FILTER
         if ($startDate !== null) {
             $sql .= " AND scheduled_at >= :start_date";
         }

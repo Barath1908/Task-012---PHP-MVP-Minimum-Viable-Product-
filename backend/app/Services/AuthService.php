@@ -166,23 +166,17 @@ class AuthService
             throw new RuntimeException('Account is deactivated. Contact admin.', HTTP_FORBIDDEN);
         }
 
-        // 4. Rehash if bcrypt cost changed
-        if (Hash::needsRehash($user['password_hash'])) {
-            $newHash = Hash::make($data['password']);
-            $this->db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
-                     ->execute([$newHash, $user['id']]);
-        }
 
         // 5. Revoke all previous refresh tokens
         $this->revokeAllRefreshTokens((int)$user['id']);
 
         // Generate CSRF token on login only
         CSRF::regenerate();
-        // Send new CSRF token in header — login response only
+        /*/ Send new CSRF token in header — login response only
         $csrfToken = CSRF::getToken();
         if (!empty($csrfToken)) {
             header('X-CSRF-Token: ' . $csrfToken);
-        }
+        }*/
 
         // 6. Issue tokens
         return $this->issueTokens($user);

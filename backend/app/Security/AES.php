@@ -79,20 +79,4 @@ class AES
         return $plain;
     }
 
-    // --------------------------------------------------------
-    //  decryptToArray()
-    //  Convenience: decrypt + JSON decode in one call.
-    //  Returns associative array or throws on invalid JSON.
-    // --------------------------------------------------------
-    public function decryptToArray(string $ciphertext): array
-    {
-        $plain = $this->decrypt($ciphertext);
-        $data  = json_decode($plain, associative: true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new InvalidArgumentException('AES decryptToArray: decrypted data is not valid JSON');
-        }
-
-        return $data;
-    }
 }
