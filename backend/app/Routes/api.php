@@ -275,7 +275,7 @@ if (preg_match('#^/auth/billing/invoice/(\d+)$#', $uri, $matches)
     $billing->updateInvoice( (int)$matches[1], $body );
 }
 
-// DELETE /auth/billing/invoice/{id} --- invoice_id
+/// DELETE /auth/billing/invoice/{id} --- invoice_id
 
  if ( preg_match('#^/auth/billing/invoice/(\d+)$#', $uri, $matches)
     && $requestMethod === 'DELETE')
