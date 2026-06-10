@@ -430,10 +430,7 @@ class AuthService
     private function emailExistsInTenant(string $emailHash, int $tenantId): bool
     {
         // Check by SHA-256 hash — never store or compare plain email
-        $stmt = $this->db->prepare("
-            SELECT COUNT id FROM users
-            WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL
-        ");
+        $stmt = $this->db->prepare("SELECT COUNT(id) FROM users WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL");
         $stmt->execute([$emailHash, $tenantId]);
         return (int)$stmt->fetchColumn() > 0;
     }

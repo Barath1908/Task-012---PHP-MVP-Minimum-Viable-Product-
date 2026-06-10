@@ -31,8 +31,7 @@ class AppointmentService {
         $endTime = date('Y-m-d H:i:s', strtotime($scheduledAt . " + {$durationMinutes} minutes"));
 
         // Using unique parameter placeholders for each position to completely prevent HY093 bugs
-        $sql = "
-            SELECT COUNT id FROM appointments 
+        $sql = "SELECT COUNT(id) FROM appointments 
             WHERE tenant_id = :tenant_id 
               AND provider_id = :provider_id 
               AND deleted_at IS NULL
