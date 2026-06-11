@@ -27,6 +27,7 @@ class AuthMiddleware
 
         // Read access token from Authorization header
         // Format: Authorization: Bearer <token>
+
         $authHeader = $_SERVER['HTTP_AUTHORIZATION']
             ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
             ?? getallheaders()['Authorization']
@@ -47,12 +48,14 @@ class AuthMiddleware
             $payload = $jwt->validate($token);
 
             // Ensure it's an access token, not a refresh token
+
             if (($payload['type'] ?? '') !== TOKEN_ACCESS) {
                 Response::unauthorized('Invalid token type.');
             }
 
             // Fix 4: Tenant validation per request
             // Task requirement: tenant exists + active + not deleted
+
             $tenantId = (int)($payload['tenant_id'] ?? 0);
             if (!$tenantId || !self::isTenantActive($tenantId)) {
                 unset($_SESSION['access_token']);
@@ -60,6 +63,7 @@ class AuthMiddleware
             }
 
             // Attach to globals so any controller can read it
+
             $GLOBALS['auth_user'] = $payload;
 
             return $payload;
@@ -76,6 +80,7 @@ class AuthMiddleware
     //  Pass allowed roles as an array of role name strings.
     //  Usage: AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER])
     // --------------------------------------------------------
+
     public static function allowRoles(array $roles): void
     {
         $authUser = $GLOBALS['auth_user'] ?? null;
@@ -94,6 +99,7 @@ class AuthMiddleware
     //  Returns the authenticated user payload.
     //  Call after handle() has been called.
     // --------------------------------------------------------
+
     public static function user(): ?array
     {
         return $GLOBALS['auth_user'] ?? null;
@@ -103,6 +109,7 @@ class AuthMiddleware
     //  tenantId()
     //  Convenience: returns tenant_id of authenticated user.
     // --------------------------------------------------------
+
     public static function tenantId(): ?int
     {
         return $GLOBALS['auth_user']['tenant_id'] ?? null;
@@ -112,6 +119,7 @@ class AuthMiddleware
     //  userId()
     //  Convenience: returns user_id of authenticated user.
     // --------------------------------------------------------
+
     public static function userId(): ?int
     {
         return $GLOBALS['auth_user']['user_id'] ?? null;
@@ -122,6 +130,7 @@ class AuthMiddleware
     // ========================================================
 
     // Fix 4: Query DB to confirm tenant is still active
+
     private static function isTenantActive(int $tenantId): bool
     {
         try {
@@ -133,7 +142,8 @@ class AuthMiddleware
             ");
             $stmt->execute([$tenantId]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (Throwable $e) {
+        } 
+        catch (Throwable $e) {
             error_log('[AuthMiddleware] Tenant check failed: ' . $e->getMessage());
             return false;
         }

@@ -27,6 +27,7 @@ $uri  = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 // ============================================================
 //  AUTH ROUTES (public — no AuthMiddleware)
 // ============================================================
+
 $auth = new AuthController();
 $dashboard = new DashboardController();
 $billing = new BillingController();
@@ -81,34 +82,45 @@ if ($uri === '/dashboard/summary' && $requestMethod === 'GET') {
 // ============================================================
 //  PATIENT ROUTES
 // ============================================================
+
 // POST /patients (Create)
-if ($uri === '/patients' && $requestMethod === 'POST') {
+
+if ($uri === '/patients' && $requestMethod === 'POST') 
+{
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
     $patientCtrl->create($body);
 }
 // GET /patients (Read All)
-if ($uri === '/patients' && $requestMethod === 'GET') {
+
+if ($uri === '/patients' && $requestMethod === 'GET') 
+{
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
     $patientCtrl->getAll();
 }
 // PUT /patients/{id} (Update)
-if (str_starts_with($uri, '/patients/') && $requestMethod === 'PUT') {
+
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'PUT') 
+{
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]); 
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->update($id, $body);
 }
 // DELETE /patients/{id} (Delete)
-if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE') {
+
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE') 
+{
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]); 
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->delete($id);
 }
 // GET /patients/{id} (Read Single Record)
-if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') {
+
+if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') 
+{
     AuthMiddleware::handle();
     AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
     $id = (int)substr($uri, strlen('/patients/'));
@@ -118,42 +130,73 @@ if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') {
 // ============================================================
 //  APPOINTMENT & CALENDAR ROUTES
 // ============================================================
+
 // POST /appointments (Create with Conflict Validation Check)
-if ($uri === '/appointments' && $requestMethod === 'POST') {
+
+if ($uri === '/appointments' && $requestMethod === 'POST') 
+{
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
+
+    AuthMiddleware::allowRoles
+    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
+
     $appointCtrl->create($body);
 }
+
 // GET /appointments (Read All OR Range Query Filter for Calendar API)
-if ($uri === '/appointments' && $requestMethod === 'GET') {
+
+if ($uri === '/appointments' && $requestMethod === 'GET') 
+    {
     AuthMiddleware::handle();
+
     // Added open calendar dashboard access roles support context
-    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
+
+    AuthMiddleware::allowRoles
+    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
     
     // Capture optional query-string filters for calendar views (?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD)
+
     $startDate = $_GET['start_date'] ?? null;
     $endDate   = $_GET['end_date'] ?? null;
     
     $appointCtrl->getAll($startDate, $endDate);
 }
+
 // PUT /appointments/{id} (Update with Collision Validator Checks)
-if (str_starts_with($uri, '/appointments/') && $requestMethod === 'PUT') {
+
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'PUT') 
+    {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+
+    AuthMiddleware::allowRoles
+    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->update($id, $body);
 }
-// DELETE /appointments/{id} (Delete / Cancel lifecycle logic)
-if (str_starts_with($uri, '/appointments/') && $requestMethod === 'DELETE') {
+
+// DELETE /appointments/{id} (Delete / Cancel logic)
+
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'DELETE') 
+    {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+
+    AuthMiddleware::allowRoles
+    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->delete($id);
 }
+
 // GET /appointments/{id} (Read Single Appointment / Tooltip Details API)
-if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET') {
+
+if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET') 
+    {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
+
+    AuthMiddleware::allowRoles
+    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
+
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->getById($id);
 }

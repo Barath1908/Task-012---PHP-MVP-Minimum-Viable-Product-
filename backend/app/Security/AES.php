@@ -19,6 +19,7 @@ class AES
     {
         // Key must be 32 bytes for AES-256
         // IV  must be 16 bytes for CBC
+
         $this->key = substr(hash('sha256', AES_KEY, true), 0, 32);
         $this->iv  = substr(hash('md5',    AES_IV,  true), 0, 16);
 
@@ -32,6 +33,7 @@ class AES
     //  Accepts a plain string or array (auto JSON-encoded).
     //  Returns base64-encoded ciphertext.
     // --------------------------------------------------------
+
     public function encrypt(mixed $data): string
     {
         $plain = is_array($data) ? json_encode($data) : (string)$data;
@@ -40,7 +42,7 @@ class AES
             $plain,
             $this->cipher,
             $this->key,
-            0,
+           OPENSSL_RAW_DATA,
             $this->iv
         );
 
@@ -56,6 +58,7 @@ class AES
     //  Accepts base64-encoded ciphertext.
     //  Returns plain string. Caller decodes JSON if needed.
     // --------------------------------------------------------
+
     public function decrypt(string $ciphertext): string
     {
         $decoded = base64_decode($ciphertext, strict: true);
@@ -68,7 +71,7 @@ class AES
             $decoded,
             $this->cipher,
             $this->key,
-            0,
+            OPENSSL_RAW_DATA,
             $this->iv
         );
 

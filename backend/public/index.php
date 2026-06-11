@@ -56,17 +56,20 @@ if (!empty($input['payload'])) {
 }
 
 // Extract CSRF token from request header
+
 $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
 // -- CSRF Validation -----------------------------------------
 // Skip CSRF for register and login — token not yet available
+
 $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $scriptDir     = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
 $currentUri    = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 
 $csrfExcluded = ['/auth/register', '/auth/login'];
 
-if (!in_array($currentUri, $csrfExcluded, true)) {
+if (!in_array($currentUri, $csrfExcluded, true)) 
+{
     CsrfMiddleware::handle($csrfToken);
 }
 
