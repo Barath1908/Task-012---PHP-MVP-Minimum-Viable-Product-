@@ -35,6 +35,7 @@ class Response
     //  created()
     //  Sends a 201 encrypted response for resource creation.
     // --------------------------------------------------------
+
     public static function created(
         mixed  $data    = [],
         string $message = 'Created successfully'
@@ -50,6 +51,7 @@ class Response
     //  error()
     //  Sends an encrypted error response.
     // --------------------------------------------------------
+
     public static function error(
         string $message = 'An error occurred',
         int    $code    = HTTP_BAD_REQUEST,
@@ -71,6 +73,7 @@ class Response
     //  unauthorized()
     //  401 — missing or invalid token.
     // --------------------------------------------------------
+    
     public static function unauthorized(string $message = 'Unauthorized'): void
     {
         self::error($message, HTTP_UNAUTHORIZED);

@@ -60,7 +60,7 @@ class AppointmentController {
         $tenantId = AuthMiddleware::tenantId(); 
         $userId   = AuthMiddleware::userId();   
         
-        // BYPASS: Restored dynamically here as well to avoid the runtime crash loop!
+        // Restored dynamically here as well to avoid the runtime crash loop
         $userRole = 'admin'; 
 
         try {

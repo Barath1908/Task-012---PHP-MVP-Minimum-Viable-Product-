@@ -122,27 +122,7 @@ class AuthController
             Response::error('Logout failed. Please try again.');
         }
     }
-
-    /*/ ========================================================
-    //  GET /auth/csrf-token
-    //  Public. Called on app load to get initial CSRF token.
-    //  Returns a fresh CSRF token (unencrypted — it's public).
-    // ========================================================
-    public function csrfToken(): void
-    {
-        $token = CSRF::generate();
-
-        // CSRF token response is NOT encrypted (by design —
-        // it's the bootstrap token needed to send the first request)
-        http_response_code(HTTP_OK);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success'    => STATUS_SUCCESS,
-            'csrf_token' => $token,
-        ]);
-        exit;
-    }*/
-
+ 
     // ========================================================
     //  POST /auth/change-password
     //  Protected. Validates current password → updates to new.

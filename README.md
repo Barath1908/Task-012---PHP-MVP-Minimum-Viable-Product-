@@ -1,4 +1,4 @@
-# Task-012 – Healthcare Management System Backend API (PHP MVP)
+# Healthcare Management System Backend API (PHP MVP)
 
 A secure multi-tenant Healthcare Management System Backend API built using Core PHP and MySQL.
 
@@ -9,8 +9,6 @@ The system is designed to serve healthcare organizations such as hospitals and c
 ---
 
 # Project Overview
-
-This project was developed as part of **Task-012 – PHP MVP (Minimum Viable Product)**.
 
 The backend provides secure APIs for managing healthcare operations across multiple tenants (hospitals/clinics), ensuring that data belonging to one tenant is isolated from another.
 
@@ -540,8 +538,8 @@ Logout
 
 # Author
 
-**Barath, Hemadharshini, Sonika**
+**Barath, Hemadharshini A, Sonika E**
 
-Task-012 – PHP MVP (Minimum Viable Product)
+PHP MVP (Minimum Viable Product)
 
 Healthcare Management System Backend API

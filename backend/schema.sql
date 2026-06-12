@@ -351,27 +351,6 @@ CREATE TABLE payments (
 
 
 -- ============================================================
--- 12. SETTINGS  (per-tenant key-value config)
--- ============================================================
-CREATE TABLE settings (
-    id            INT UNSIGNED    NOT NULL AUTO_INCREMENT,
-    tenant_id     INT UNSIGNED    NOT NULL,
-    key_name      VARCHAR(100)    NOT NULL,
-    value         TEXT                NULL,
-    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by    INT UNSIGNED        NULL,
-    updated_by    INT UNSIGNED        NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_settings_tenant_key (tenant_id, key_name),
-    INDEX idx_settings_tenant (tenant_id),
-    CONSTRAINT fk_settings_tenant      FOREIGN KEY (tenant_id)  REFERENCES tenants (id),
-    CONSTRAINT fk_settings_created_by  FOREIGN KEY (created_by) REFERENCES users   (id),
-    CONSTRAINT fk_settings_updated_by  FOREIGN KEY (updated_by) REFERENCES users   (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
--- ============================================================
 -- SEED DATA — Roles
 -- ============================================================
 INSERT INTO roles (name, label) VALUES

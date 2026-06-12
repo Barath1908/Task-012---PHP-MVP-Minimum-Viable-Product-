@@ -24,6 +24,7 @@ class DashboardService
     //  Returns full dashboard statistics for a tenant.
     //  Includes: patients, appointments, prescriptions summary
     // ========================================================
+
     public function getSummary(int $tenantId): array
     {
         return [
@@ -41,6 +42,7 @@ class DashboardService
     //  getPatientStats()
     //  Returns total active patients for tenant
     // --------------------------------------------------------
+
     private function getPatientStats(int $tenantId): array
     {
         $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM patients WHERE tenant_id = ? AND deleted_at IS NULL AND is_active = 1");
@@ -56,6 +58,7 @@ class DashboardService
     //  getAppointmentStats()
     //  Returns total and per-status appointment counts
     // --------------------------------------------------------
+
     private function getAppointmentStats(int $tenantId): array
     {
         // Total count
@@ -95,6 +98,7 @@ class DashboardService
     //  getPrescriptionStats()
     //  Returns total and per-status prescription counts
     // --------------------------------------------------------
+    
     private function getPrescriptionStats(int $tenantId): array
     {
         // Total count
