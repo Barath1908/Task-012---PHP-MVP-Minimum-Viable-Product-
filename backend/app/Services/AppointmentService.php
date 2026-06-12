@@ -23,22 +23,32 @@ class AppointmentService {
     }
 
     /**
-     * CONFLICT VALIDATION ENGINE (Double Booking Blocker Logic)
+     * Double Booking Blocker Logic
      * Rewritten with unique placeholder names to prevent native PDO parameter mapping bugs (HY093).
      */
-    private function hasSchedulingConflict(int $tenantId, int $providerId, string $scheduledAt, int $durationMinutes, ?int $excludeAppointmentId = null): bool {
+
+    private function hasSchedulingConflict
+    (int $tenantId, int $providerId, string $scheduledAt, 
+    int $durationMinutes, ?int $excludeAppointmentId = null): bool 
+    {
         $startTime = $scheduledAt;
         $endTime = date('Y-m-d H:i:s', strtotime($scheduledAt . " + {$durationMinutes} minutes"));
 
         // Using unique parameter placeholders for each position to completely prevent HY093 bugs
+
         $sql = "SELECT COUNT(id) FROM appointments 
             WHERE tenant_id = :tenant_id 
               AND provider_id = :provider_id 
               AND deleted_at IS NULL
               AND (
-                   (scheduled_at <= :start_time1 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) > :start_time2) OR
-                   (scheduled_at < :end_time1 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) >= :end_time2) OR
-                   (scheduled_at >= :start_time3 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) <= :end_time3)
+                   (scheduled_at <= :start_time1 AND DATE_ADD
+                   (scheduled_at, INTERVAL duration_minutes MINUTE) > :start_time2) OR
+
+                   (scheduled_at < :end_time1 AND DATE_ADD
+                   (scheduled_at, INTERVAL duration_minutes MINUTE) >= :end_time2) OR
+
+                   (scheduled_at >= :start_time3 AND DATE_ADD
+                   (scheduled_at, INTERVAL duration_minutes MINUTE) <= :end_time3)
               )
         ";
 
@@ -67,10 +77,15 @@ class AppointmentService {
         return ((int)$stmt->fetchColumn()) > 0;
     }
 
-    public function createAppointment(array $data, int $userId, int $tenantId): int {
+
+    public function createAppointment
+    (array $data, int $userId, int $tenantId): int 
+    {
         $duration = $data['duration_minutes'] ?? 30;
 
-        if ($this->hasSchedulingConflict($tenantId, $data['provider_id'], $data['scheduled_at'], $duration)) {
+        if ($this->hasSchedulingConflict
+        ($tenantId, $data['provider_id'], $data['scheduled_at'], $duration)) 
+        {
             throw new Exception("Scheduling conflict detected! The requested doctor slot is already filled.");
         }
 
@@ -99,8 +114,13 @@ class AppointmentService {
     /**
      * FETCH APPOINTMENTS WITH OPTIONAL CALENDAR RANGE FILTERS 
      */
-    public function getAllAppointments(int $tenantId, int $userId, string $userRole, ?string $startDate = null, ?string $endDate = null): array {
-        $sql = "SELECT * FROM appointments WHERE tenant_id = :tenant_id AND deleted_at IS NULL";
+
+    public function getAllAppointments
+    (int $tenantId, int $userId, string $userRole,
+     ?string $startDate = null, ?string $endDate = null): array 
+     {
+        $sql = "SELECT * FROM appointments 
+               WHERE tenant_id = :tenant_id AND deleted_at IS NULL";
 
         //ROLE-BASED VISIBILITY FILTER
         if ($userRole === 'provider' || $userRole === 'doctor') {
@@ -122,6 +142,7 @@ class AppointmentService {
         $stmt = $this->db->prepare($sql);
         
         // Build precision binding parameters array context
+
         $params = [':tenant_id' => $tenantId];
         
         if ($userRole === 'provider' || $userRole === 'doctor' || $userRole === 'patient') {
@@ -146,6 +167,7 @@ class AppointmentService {
     /**
      * FETCH SINGLE APPOINTMENT BY ID
      */
+
     public function getAppointmentById(int $id, int $tenantId, int $userId, string $userRole): ?array {
         $sql = "
             SELECT 
@@ -203,10 +225,14 @@ class AppointmentService {
         return $appointment;
     }
 
-    public function updateAppointment(int $id, array $data, int $userId, int $tenantId): bool {
+
+    public function updateAppointment(int $id, array $data, int $userId, int $tenantId): bool 
+    {
         $duration = $data['duration_minutes'] ?? 30;
 
-        if ($this->hasSchedulingConflict($tenantId, $data['provider_id'], $data['scheduled_at'], $duration, $id)) {
+        if ($this->hasSchedulingConflict
+        ($tenantId, $data['provider_id'], $data['scheduled_at'], $duration, $id)) 
+        {
             throw new Exception("Scheduling conflict detected! The requested doctor slot is already filled.");
         }
 
@@ -232,7 +258,9 @@ class AppointmentService {
         ]);
     }
 
-    public function deleteAppointment(int $id, int $userId, int $tenantId): bool {
+
+    public function deleteAppointment(int $id, int $userId, int $tenantId): bool 
+    {
         $stmt = $this->db->prepare("
             UPDATE appointments SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tenant_id
         ");
@@ -243,10 +271,12 @@ class AppointmentService {
         ]);
     }
 
-    private function decryptAppointmentFields(array $row): array {
+    private function decryptAppointmentFields(array $row): array 
+    {
         $fieldsToDecrypt = ['reason', 'notes'];
 
-        foreach ($fieldsToDecrypt as $field) {
+        foreach ($fieldsToDecrypt as $field) 
+        {
             if (!empty($row[$field])) {
                 try {
                     $row[$field] = $this->aes->decrypt($row[$field]);

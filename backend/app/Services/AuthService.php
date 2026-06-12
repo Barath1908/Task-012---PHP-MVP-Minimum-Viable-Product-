@@ -42,6 +42,7 @@ class AuthService
     //  7. Load user and generate tokens
     //  Returns: [access_token, refresh_token, user]
     // ========================================================
+
     public function register(array $data): array
     {
         $tenantId  = (int)$data['tenant_id'];
@@ -53,17 +54,20 @@ class AuthService
         $phone     = $data['phone'] ?? null;
 
         // 1. Tenant check
+
         $tenant = $this->findActiveTenant($tenantId);
         if (!$tenant) {
             throw new RuntimeException('Invalid or inactive tenant.', HTTP_BAD_REQUEST);
         }
 
         // 2. Email uniqueness check via hash
+
         if ($this->emailExistsInTenant($emailHash, $tenantId)) {
             throw new RuntimeException('Email already registered in this tenant.', HTTP_CONFLICT);
         }
 
         // 3. Role exists check
+
         $role = $this->findRole($roleId);
         if (!$role) {
             throw new RuntimeException('Invalid role.', HTTP_BAD_REQUEST);
@@ -73,6 +77,7 @@ class AuthService
         $passwordHash = Hash::make($data['password']);
 
         // 5. Insert user — all sensitive fields AES encrypted
+
         $stmt = $this->db->prepare("
             INSERT INTO users
                 (tenant_id, role_id, first_name, last_name, email, email_hash, phone, password_hash)
@@ -94,8 +99,11 @@ class AuthService
         $userId = (int)$this->db->lastInsertId();
 
         // 6. Auto-insert into staff or patients table based on role
-        if ($role['name'] !== ROLE_PATIENT) {
+
+        if ($role['name'] !== ROLE_PATIENT) 
+        {
             // Admin, Provider, Nurse, Pharmacist, Receptionist → staff table
+
             $this->db->prepare("
                 INSERT INTO staff (user_id, tenant_id, is_active)
                 VALUES (:user_id, :tenant_id, 1)
@@ -103,9 +111,11 @@ class AuthService
                 ':user_id'   => $userId,
                 ':tenant_id' => $tenantId,
             ]);
-        } else {
+        } else 
+        {
             // Patient → patients table
             // first_name, last_name, email, phone AES encrypted
+
             $this->db->prepare("
                 INSERT INTO patients
                     (user_id, tenant_id, first_name, last_name, phone, email, is_active)
@@ -122,9 +132,11 @@ class AuthService
         }
 
         // 7. Load user with role name for token payload
+
         $user = $this->findUserById($userId);
 
         // 8. Return user details — no tokens on register
+
         return [
             'id'        => $user['id'],
             'tenant_id' => $user['tenant_id'],
@@ -143,6 +155,7 @@ class AuthService
     //  5. Revoke old refresh tokens
     //  6. Issue new tokens
     // ========================================================
+
     public function login(array $data): array
     {
         $email     = strtolower(trim($data['email']));
@@ -172,11 +185,6 @@ class AuthService
 
         // Generate CSRF token on login only
         CSRF::regenerate();
-        /*/ Send new CSRF token in header — login response only
-        $csrfToken = CSRF::getToken();
-        if (!empty($csrfToken)) {
-            header('X-CSRF-Token: ' . $csrfToken);
-        }*/
 
         // 6. Issue tokens
         return $this->issueTokens($user);
@@ -191,6 +199,7 @@ class AuthService
     //  5. Update in DB
     //  6. Revoke all refresh tokens — force re-login on other devices
     // ========================================================
+
     public function changePassword(int $userId, string $currentPassword, string $newPassword): void
     {
         // 1. Find user
@@ -229,10 +238,12 @@ class AuthService
     //  4. Revoke old token
     //  5. Issue new access + refresh tokens
     // ========================================================
+
     public function refresh(): array
     {
         // Read refresh token from HttpOnly cookie
         // Never from request body — cookie is automatic
+
         $rawToken = $_COOKIE['refresh_token'] ?? null;
 
         if (!$rawToken) {
@@ -240,6 +251,7 @@ class AuthService
         }
 
         // 1. Validate JWT structure + signature + expiry
+
         try {
             $payload = $this->jwt->validate($rawToken);
         } catch (Throwable $e) {
@@ -251,6 +263,7 @@ class AuthService
         }
 
         // 2. Check DB record
+
         $tokenHash = $this->jwt->hashToken($rawToken);
         $record    = $this->findRefreshToken($tokenHash);
 
@@ -263,15 +276,19 @@ class AuthService
         }
 
         // 3. Revoke old token
+
         $this->revokeRefreshToken($tokenHash);
 
         // 4. Load fresh user data
+
         $user = $this->findUserById((int)$payload['user_id']);
-        if (!$user || !(bool)$user['is_active']) {
+        if (!$user || !(bool)$user['is_active']) 
+        {
             throw new RuntimeException('User not found or deactivated.', HTTP_UNAUTHORIZED);
         }
 
         // 5. Issue new tokens
+
         return $this->issueTokens($user);
     }
 
@@ -281,11 +298,14 @@ class AuthService
     //  2. Clear access token from session
     //  3. Clear CSRF token
     // ========================================================
+
     public function logout(int $userId): void
     {
         $this->revokeAllRefreshTokens($userId);
         CSRF::clear();
+
         // Clear refresh token cookie
+
         setcookie(
             'refresh_token',
             '',
@@ -309,10 +329,10 @@ class AuthService
         $refreshToken = $this->jwt->generateRefreshToken($user);
 
         // Regenerate session ID — prevents session fixation attacks
+
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
-
 
         // Store hashed refresh token in DB
         $this->storeRefreshToken((int)$user['id'], $refreshToken);
@@ -320,6 +340,7 @@ class AuthService
 
         // Store refresh token in HttpOnly cookie
         // JavaScript cannot read this — XSS protection
+
         setcookie(
             'refresh_token',           // cookie name
             $refreshToken,             // raw token value
@@ -343,6 +364,7 @@ class AuthService
             ],
         ];
     }
+
 
     private function storeRefreshToken(int $userId, string $rawToken): void
     {
@@ -404,6 +426,7 @@ class AuthService
     private function findUserByEmailHashAndTenant(string $emailHash, int $tenantId): array|false
     {
         // Search by SHA-256 hash — fast and secure
+
         $stmt = $this->db->prepare("
             SELECT u.*, r.name AS role
             FROM users u
@@ -424,6 +447,7 @@ class AuthService
     private function emailExistsInTenant(string $emailHash, int $tenantId): bool
     {
         // Check by SHA-256 hash — never store or compare plain email
+
         $stmt = $this->db->prepare("SELECT COUNT(id) FROM users WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL");
         $stmt->execute([$emailHash, $tenantId]);
         return (int)$stmt->fetchColumn() > 0;
@@ -432,6 +456,7 @@ class AuthService
     private function findActiveTenant(int $id): array|false
     {
         // tenants columns are plain text — no decryption needed
+
         $stmt = $this->db->prepare("
             SELECT * FROM tenants
             WHERE id = ? AND is_active = 1 AND deleted_at IS NULL
@@ -453,6 +478,7 @@ class AuthService
     //  Decrypts all AES encrypted fields of a user row.
     //  Called after every user fetch from DB.
     // --------------------------------------------------------
+    
     private function decryptUserFields(array $user): array
     {
         try {

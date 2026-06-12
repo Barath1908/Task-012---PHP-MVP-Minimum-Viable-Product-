@@ -22,8 +22,19 @@ class PatientService {
         return $this->aes->encrypt(trim($value));
     }
 
-    public function createPatient(array $data, int $userId, int $tenantId): int {
-        $stmt = $this->db->prepare("INSERT INTO patients (tenant_id, user_id, first_name, last_name, date_of_birth, age, gender, phone, email,address, blood_group, allergies, medical_history, emergency_contact, is_active) VALUES (:tenant_id, :user_id, :first_name, :last_name, :date_of_birth, :age, :gender, :phone, :email, :address, :blood_group, :allergies, :medical_history, :emergency_contact, 1)
+
+    public function createPatient(array $data, int $userId, int $tenantId): int 
+    {
+        $stmt = $this->db->prepare
+        ("INSERT INTO patients 
+        (tenant_id, user_id, first_name, last_name, date_of_birth, 
+        age, gender, phone, email,address, blood_group, allergies, 
+        medical_history, emergency_contact, is_active) 
+        
+          VALUES (:tenant_id, :user_id, :first_name, :last_name, 
+          :date_of_birth, :age, :gender, :phone, :email, :address, 
+          :blood_group, :allergies, :medical_history, :emergency_contact, 1)
+
         ");
 
         $stmt->execute([
@@ -46,12 +57,18 @@ class PatientService {
         return (int)$this->db->lastInsertId();
     }
 
-    public function getAllPatients(int $tenantId): array {
-        $stmt = $this->db->prepare("SELECT * FROM patients WHERE tenant_id = ? AND deleted_at IS NULL");
+
+    public function getAllPatients(int $tenantId): array 
+    {
+        $stmt = $this->db->prepare
+        ("SELECT * FROM patients
+         WHERE tenant_id = ? AND deleted_at IS NULL");
+
         $stmt->execute([$tenantId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($rows as &$row) {
+        foreach ($rows as &$row) 
+        {
             $row = $this->decryptPatientFields($row);
         }
         return $rows;
@@ -60,13 +77,16 @@ class PatientService {
     /**
      * Fetches a single patient record by ID, isolated by tenant context.
      */
-    public function getPatientById(int $id, int $tenantId): ?array {
+    public function getPatientById(int $id, int $tenantId): ?array 
+    {
         // Use our instantiated driver connection safely
+
         $stmt = $this->db->prepare("
             SELECT * FROM patients 
             WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL 
             LIMIT 1
         ");
+
         $stmt->execute([$id, $tenantId]);
         $patient = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -78,13 +98,19 @@ class PatientService {
         return $this->decryptPatientFields($patient);
     }
 
-    public function updatePatient(int $id, array $data, int $userId, int $tenantId): bool {
+
+    public function updatePatient(int $id, array $data, int $userId, int $tenantId): bool 
+    {
         $stmt = $this->db->prepare("
             UPDATE patients SET 
-                first_name = :first_name, last_name = :last_name, date_of_birth = :date_of_birth, 
-                age = :age, gender = :gender, phone = :phone, email = :email, address = :address, 
-                blood_group = :blood_group, allergies = :allergies, medical_history = :medical_history, 
+                first_name = :first_name, last_name = :last_name,
+                 date_of_birth = :date_of_birth, 
+                age = :age, gender = :gender, phone = :phone, 
+                email = :email, address = :address, 
+                blood_group = :blood_group, allergies = :allergies,
+                 medical_history = :medical_history, 
                 emergency_contact = :emergency_contact, updated_at = NOW()
+
             WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NULL
         ");
 
@@ -120,7 +146,9 @@ class PatientService {
     /**
      * Decrypts all 12 custom encrypted fields back to plain text for API responses.
      */
-    private function decryptPatientFields(array $row): array {
+
+    private function decryptPatientFields(array $row): array
+    {
         $encryptedFields = [
             'first_name', 'last_name', 'date_of_birth', 'age', 'gender', 
             'phone', 'email', 'address', 'blood_group', 'allergies', 
@@ -131,8 +159,10 @@ class PatientService {
             if (!empty($row[$field])) {
                 try {
                     // Uses our object property safely without throwing static errors
+
                     $row[$field] = $this->aes->decrypt($row[$field]);
-                } catch (Throwable $e) {
+                } catch (Throwable $e) 
+                {
                     error_log("[PatientService] Decryption failed for field {$field}: " . $e->getMessage());
                 }
             }

@@ -27,6 +27,7 @@ class PatientController {
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
 
+
     public function getAll(): void {
         $tenantId = AuthMiddleware::tenantId();
         try {
@@ -34,6 +35,7 @@ class PatientController {
             Response::success($patients, 'Patients retrieved successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
+
 
     public function getById(int $id): void {
     $tenantId = AuthMiddleware::tenantId(); // Enforces isolation
@@ -51,6 +53,8 @@ class PatientController {
         Response::error($e->getMessage()); 
     }
 }
+
+
     public function update(int $id, array $body): void {
         $userId   = AuthMiddleware::userId();
         $tenantId = AuthMiddleware::tenantId();
@@ -66,6 +70,7 @@ class PatientController {
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
 
+    
     public function delete(int $id): void {
         $userId   = AuthMiddleware::userId();
         $tenantId = AuthMiddleware::tenantId();
