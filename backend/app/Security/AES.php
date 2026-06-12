@@ -42,7 +42,7 @@ class AES
             $plain,
             $this->cipher,
             $this->key,
-           OPENSSL_RAW_DATA,
+            0,
             $this->iv
         );
 
@@ -71,7 +71,7 @@ class AES
             $decoded,
             $this->cipher,
             $this->key,
-            OPENSSL_RAW_DATA,
+            0,
             $this->iv
         );
 
