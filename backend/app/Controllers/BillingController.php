@@ -30,7 +30,7 @@ class BillingController
         }
 
         try {
-            $invoice = $this->service->createInvoice($body, AuthMiddleware::user());
+            $invoice = $this->service->createInvoice($body, AuthMiddleware::userId());
 
             Response::created(
                 $invoice,
@@ -54,8 +54,7 @@ class BillingController
         try {
 
             $invoice = $this->service->getInvoice(
-                $invoiceId,
-                AuthMiddleware::tenantId()
+                $invoiceId
             );
 
             Response::success(
@@ -76,7 +75,7 @@ class BillingController
     public function listInvoices(): void
     {
         try {
-            $invoices = $this->service->getInvoices( AuthMiddleware::tenantId());
+            $invoices = $this->service->getInvoices();
 
             Response::success(
                 $invoices,
@@ -111,7 +110,7 @@ class BillingController
         }
 
         try {
-            $result = $this->service->recordPayment($body, AuthMiddleware::user());
+            $result = $this->service->recordPayment($body, AuthMiddleware::userId());
 
             Response::success(
                 $result,
@@ -135,7 +134,7 @@ class BillingController
         $result = $this->service->updatePayment(
             $paymentId,
             $body,
-            AuthMiddleware::user()
+            AuthMiddleware::userId()
         );
 
         Response::success(
@@ -159,7 +158,7 @@ class BillingController
         $invoice = $this->service->updateInvoice(
             $id,
             $body,
-            AuthMiddleware::user()
+            AuthMiddleware::userId()
         );
 
         Response::success($invoice, "Invoice updated successfully.");
@@ -178,7 +177,7 @@ class BillingController
    public function deleteInvoice(int $id): void
    {
     try {
-        $this->service->deleteInvoice( $id, AuthMiddleware::user() );
+        $this->service->deleteInvoice( $id, AuthMiddleware::userId() );
 
         Response::success(null, "Invoice deleted successfully.");
 
@@ -192,7 +191,7 @@ class BillingController
     public function summary(): void
     {
         try {
-            $summary = $this->service->getSummary(AuthMiddleware::tenantId());
+            $summary = $this->service->getSummary();
 
             Response::success(
                 $summary,

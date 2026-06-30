@@ -1,6 +1,6 @@
 # Healthcare Management System Backend API (PHP MVP)
 
-A secure multi-tenant Healthcare Management System Backend API built using Core PHP and MySQL.
+A secure multi-tenant Healthcare Management System Backend API built using Core PHP and MySQL
 
 The project follows an MVC-inspired architecture and provides RESTful APIs for authentication, patient management, appointment scheduling, prescriptions, billing, staff management, communication, and reporting.
 

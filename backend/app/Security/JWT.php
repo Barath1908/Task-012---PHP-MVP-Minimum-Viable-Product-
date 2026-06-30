@@ -22,44 +22,31 @@ class JWT
         $this->secret = JWT_SECRET;
     }
 
-    // --------------------------------------------------------
-    //  generateAccessToken()
-    //  Payload contains user identity + tenant context.
-    //  Expires in ACCESS_TOKEN_EXPIRY seconds (default 15 min).
-    // --------------------------------------------------------
+    // Replace generateAccessToken in JWT.php
+
     public function generateAccessToken(array $user): string
     {
         $payload = [
-            'type'      => TOKEN_ACCESS,
-            'user_id'   => $user['id'],
-            'tenant_id' => $user['tenant_id'],
-            'role'      => $user['role'],
-            'iat'       => time(),
-            'exp'       => time() + ACCESS_TOKEN_EXPIRY,
+            'type'    => TOKEN_ACCESS,
+            'user_id' => $user['id'],
+            'role'    => $user['role'],
+            'iat'     => time(),
+            'exp'     => time() + ACCESS_TOKEN_EXPIRY,
         ];
-
         return $this->encode($payload);
     }
 
-    // --------------------------------------------------------
-    //  generateRefreshToken()
-    //  Longer lived. Stored hashed in DB (refresh_tokens table).
-    //  Contains minimal payload — just enough to identify user.
-    // --------------------------------------------------------
     public function generateRefreshToken(array $user): string
     {
         $payload = [
-            'type'      => TOKEN_REFRESH,
-            'user_id'   => $user['id'],
-            'tenant_id' => $user['tenant_id'],
-            'jti'       => bin2hex(random_bytes(16)), // unique token ID
-            'iat'       => time(),
-            'exp'       => time() + REFRESH_TOKEN_EXPIRY,
+            'type'    => TOKEN_REFRESH,
+            'user_id' => $user['id'],
+            'jti'     => bin2hex(random_bytes(16)),
+            'iat'     => time(),
+            'exp'     => time() + REFRESH_TOKEN_EXPIRY,
         ];
-
         return $this->encode($payload);
     }
-
     // --------------------------------------------------------
     //  validate()
     //  Verifies signature + expiry.

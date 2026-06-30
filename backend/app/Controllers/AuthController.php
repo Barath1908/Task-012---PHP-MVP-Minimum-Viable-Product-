@@ -30,12 +30,11 @@ class AuthController
     public function register(array $body): void
     {
         $validator = new Validator($body);
-        $validator->required(['tenant_id', 'role_id', 'first_name', 'last_name', 'email', 'password'])
+        $validator->required(['role_id', 'first_name', 'last_name', 'email', 'password'])
           ->email('email')
           ->min('password', 8)
           ->max('first_name', 80)
           ->max('last_name', 80)
-          ->numeric('tenant_id')
           ->numeric('role_id');
 
         if ($validator->fails()) {
@@ -57,9 +56,8 @@ class AuthController
     public function login(array $body): void
     {
         $validator = new Validator($body);
-        $validator->required(['tenant_id', 'email', 'password'])
-          ->email('email')
-          ->numeric('tenant_id');
+        $validator->required(['email', 'password'])
+          ->email('email');
 
         if ($validator->fails()) {
             Response::validationError($validator->errors());

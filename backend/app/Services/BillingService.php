@@ -13,11 +13,8 @@ class BillingService
 
     // CREATE INVOICE
 
-    public function createInvoice(array $data, array $authUser): array 
+    public function createInvoice(array $data, int $userId): array 
     {
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
-
         $patientId      = (int)$data['patient_id'];
         $appointmentId  = $data['appointment_id'] ?? null;
         $totalAmount    = (float)$data['total_amount'];
@@ -29,7 +26,6 @@ class BillingService
         $stmt = $this->db->prepare("
             INSERT INTO invoices
             (
-                tenant_id,
                 patient_id,
                 appointment_id,
                 issued_by,
@@ -43,7 +39,6 @@ class BillingService
             )
             VALUES
             (
-                :tenant_id,
                 :patient_id,
                 :appointment_id,
                 :issued_by,
@@ -58,7 +53,6 @@ class BillingService
         ");
 
         $stmt->execute([
-            ':tenant_id'       => $tenantId,
             ':patient_id'      => $patientId,
             ':appointment_id'  => $appointmentId,
             ':issued_by'       => $userId,
@@ -73,24 +67,23 @@ class BillingService
 
         $invoiceId = (int)$this->db->lastInsertId();
 
-        return $this->getInvoice( $invoiceId, $tenantId );
+        return $this->getInvoice( $invoiceId );
     }
 
     // GET SINGLE INVOICE
 
-    public function getInvoice(int $invoiceId, int $tenantId): array 
+    public function getInvoice(int $invoiceId): array 
     {
         $stmt = $this->db->prepare("
             SELECT *
             FROM invoices
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
             LIMIT 1
         ");
 
-        $stmt->execute([ $invoiceId, $tenantId ]);
+        $stmt->execute([ $invoiceId ]);
 
         $invoice = $stmt->fetch();
 
@@ -103,38 +96,33 @@ class BillingService
 
     // GET ALL INVOICES
     
-    public function getInvoices(int $tenantId): array 
+    public function getInvoices(): array 
     {
         $stmt = $this->db->prepare("
             SELECT *
             FROM invoices
             WHERE
-                tenant_id = ?
-                AND deleted_at IS NULL
+                deleted_at IS NULL
             ORDER BY id DESC
         ");
 
-        $stmt->execute([$tenantId]);
+        $stmt->execute();
 
         return $stmt->fetchAll();
     }
 
     // RECORD PAYMENT
 
-    public function recordPayment(array $data,array $authUser): array 
+    public function recordPayment(array $data, int $userId): array 
     {
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
-
         $invoiceId = (int)$data['invoice_id'];
         $amount    = (float)$data['amount'];
 
-        $invoice = $this->getInvoice( $invoiceId, $tenantId );
+        $invoice = $this->getInvoice( $invoiceId );
 
         $stmt = $this->db->prepare("
             INSERT INTO payments
             (
-                tenant_id,
                 invoice_id,
                 patient_id,
                 amount,
@@ -145,7 +133,6 @@ class BillingService
             )
             VALUES
             (
-                :tenant_id,
                 :invoice_id,
                 :patient_id,
                 :amount,
@@ -157,7 +144,6 @@ class BillingService
         ");
 
         $stmt->execute([
-            ':tenant_id'      => $tenantId,
             ':invoice_id'     => $invoiceId,
             ':patient_id'     => $invoice['patient_id'],
             ':amount'         => $amount,
@@ -205,13 +191,10 @@ class BillingService
 
     // update invoice
      
-    public function updateInvoice( int $invoiceId, array $data, array $authUser ): array 
+    public function updateInvoice( int $invoiceId, array $data, int $userId ): array 
     {
-    $tenantId = (int)$authUser['tenant_id'];
-    $userId   = (int)$authUser['user_id'];
-
     // ensure invoice exists
-    $invoice = $this->getInvoice($invoiceId, $tenantId);
+    $invoice = $this->getInvoice($invoiceId);
 
     $stmt = $this->db->prepare("
         UPDATE invoices
@@ -223,7 +206,6 @@ class BillingService
             notes = ?,
             updated_at = NOW()
         WHERE id = ?
-        AND tenant_id = ?
         AND deleted_at IS NULL
     ");
 
@@ -238,31 +220,26 @@ class BillingService
         $finalAmount,
         $data['due_date'] ?? $invoice['due_date'],
         $data['notes'] ?? $invoice['notes'],
-        $invoiceId,
-        $tenantId
+        $invoiceId
     ]);
 
-    return $this->getInvoice($invoiceId, $tenantId);
+    return $this->getInvoice($invoiceId);
 }
 
     // soft delete invoice
     
-    public function deleteInvoice( int $invoiceId, array $authUser ): void 
+    public function deleteInvoice( int $invoiceId, int $userId ): void 
     {
-    $tenantId = (int)$authUser['tenant_id'];
-    $userId   = (int)$authUser['user_id'];
-
-    $this->getInvoice($invoiceId, $tenantId);
+    $this->getInvoice($invoiceId);
 
     $stmt = $this->db->prepare("
         UPDATE invoices
         SET
             deleted_at = NOW()
         WHERE id = ?
-        AND tenant_id = ?
     ");
 
-    $stmt->execute([ $invoiceId, $tenantId ]);
+    $stmt->execute([ $invoiceId ]);
 }
 
   // PUT/ auth/billing/payment/{id} - update payment
@@ -270,11 +247,9 @@ class BillingService
   public function updatePayment(
     int $paymentId,
     array $data,
-    array $authUser
+    int $userId
 ): array
 {
-    $userId = (int)$authUser['user_id'];
-
     $stmt = $this->db->prepare("
         SELECT *
         FROM payments
@@ -315,35 +290,33 @@ class BillingService
 
     // BILLING SUMMARY
 
-    public function getSummary(int $tenantId): array 
+    public function getSummary(): array 
     {
         $stmt = $this->db->prepare("SELECT COUNT(id)
             FROM invoices
-            WHERE tenant_id = ?
-            AND deleted_at IS NULL
+            WHERE deleted_at IS NULL
         ");
 
-        $stmt->execute([$tenantId]);
+        $stmt->execute();
 
         $totalInvoices = (int)$stmt->fetchColumn();
 
         $stmt = $this->db->prepare("SELECT COUNT(id)
             FROM invoices
             WHERE
-                tenant_id = ?
-                AND status = ?
+                status = ?
                 AND deleted_at IS NULL
         ");
 
-        $stmt->execute([ $tenantId, INV_PAID ]);
+        $stmt->execute([ INV_PAID ]);
 
         $paid = (int)$stmt->fetchColumn();
 
-        $stmt->execute([ $tenantId, INV_PARTIALLY_PAID ]);
+        $stmt->execute([ INV_PARTIALLY_PAID ]);
 
         $partialPaid = (int)$stmt->fetchColumn();
 
-        $stmt->execute([ $tenantId, INV_CANCELLED]);
+        $stmt->execute([ INV_CANCELLED]);
 
         $cancelled = (int)$stmt->fetchColumn();
 

@@ -36,8 +36,7 @@ class PrescriptionController
         try {
 
             $result = $this->service->createPrescription(
-                $body,
-                AuthMiddleware::user()
+                $body
             );
 
             Response::created(
@@ -61,8 +60,7 @@ class PrescriptionController
         try {
 
             $result = $this->service->getPrescription(
-                $id,
-                AuthMiddleware::tenantId()
+                $id
             );
 
             Response::success(
@@ -87,7 +85,7 @@ class PrescriptionController
 
             $result = $this->service->verifyPrescription(
                 $id,
-                AuthMiddleware::user()
+                AuthMiddleware::userId()
             );
 
             Response::success(
@@ -112,7 +110,7 @@ class PrescriptionController
 
             $result = $this->service->dispensePrescription(
                 $id,
-                AuthMiddleware::user()
+                AuthMiddleware::userId()
             );
 
             Response::success(

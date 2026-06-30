@@ -25,12 +25,12 @@ class DashboardService
     //  Includes: patients, appointments, prescriptions summary
     // ========================================================
 
-    public function getSummary(int $tenantId): array
+    public function getSummary(): array
     {
         return [
-            'patients'      => $this->getPatientStats($tenantId),
-            'appointments'  => $this->getAppointmentStats($tenantId),
-            'prescriptions' => $this->getPrescriptionStats($tenantId),
+            'patients'      => $this->getPatientStats(),
+            'appointments'  => $this->getAppointmentStats(),
+            'prescriptions' => $this->getPrescriptionStats(),
         ];
     }
 
@@ -43,10 +43,10 @@ class DashboardService
     //  Returns total active patients for tenant
     // --------------------------------------------------------
 
-    private function getPatientStats(int $tenantId): array
+    private function getPatientStats(): array
     {
-        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM patients WHERE tenant_id = ? AND deleted_at IS NULL AND is_active = 1");
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM patients WHERE deleted_at IS NULL AND is_active = 1");
+        $stmt->execute();
         $result = $stmt->fetch();
 
         return [
@@ -59,16 +59,16 @@ class DashboardService
     //  Returns total and per-status appointment counts
     // --------------------------------------------------------
 
-    private function getAppointmentStats(int $tenantId): array
+    private function getAppointmentStats(): array
     {
         // Total count
-        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM appointments WHERE tenant_id = ? AND deleted_at IS NULL");
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM appointments WHERE deleted_at IS NULL");
+        $stmt->execute();
         $total = (int)$stmt->fetch()['total'];
 
         // Per status counts
-        $stmt = $this->db->prepare("SELECT status, COUNT(id) AS count FROM appointments WHERE tenant_id = ? AND deleted_at IS NULL GROUP BY status");
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare("SELECT status, COUNT(id) AS count FROM appointments WHERE deleted_at IS NULL GROUP BY status");
+        $stmt->execute();
         $rows = $stmt->fetchAll();
 
         // Build status counts with default 0
@@ -99,16 +99,16 @@ class DashboardService
     //  Returns total and per-status prescription counts
     // --------------------------------------------------------
     
-    private function getPrescriptionStats(int $tenantId): array
+    private function getPrescriptionStats(): array
     {
         // Total count
-        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM prescriptions WHERE tenant_id = ? AND deleted_at IS NULL");
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare("SELECT COUNT(id) AS total FROM prescriptions WHERE deleted_at IS NULL");
+        $stmt->execute();
         $total = (int)$stmt->fetch()['total'];
 
         // Per status counts
-        $stmt = $this->db->prepare("SELECT status, COUNT(id) AS count FROM prescriptions WHERE tenant_id = ? AND deleted_at IS NULL GROUP BY status");
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare("SELECT status, COUNT(id) AS count FROM prescriptions WHERE deleted_at IS NULL GROUP BY status");
+        $stmt->execute();
         $rows = $stmt->fetchAll();
 
         // Build status counts with default 0

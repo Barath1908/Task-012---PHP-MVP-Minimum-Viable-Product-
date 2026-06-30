@@ -16,10 +16,8 @@ class StaffService
     }
 
     // CREATE STAFF
-    public function createStaff(array $data, array $authUser): array
+    public function createStaff(array $data): array
     {
-        $tenantId  = (int)$authUser['tenant_id'];
-
         $email = strtolower(trim($data['email']));
         $emailHash = hash('sha256', $email);
 
@@ -27,12 +25,11 @@ class StaffService
         $stmt = $this->db->prepare("
             SELECT id FROM users
             WHERE email_hash = ?
-            AND tenant_id = ?
             AND deleted_at IS NULL
             LIMIT 1
         ");
 
-        $stmt->execute([$emailHash, $tenantId]);
+        $stmt->execute([$emailHash]);
 
         if ($stmt->fetch()) {
             throw new RuntimeException('Email already exists.', HTTP_CONFLICT);
@@ -42,13 +39,6 @@ class StaffService
         $stmt = $this->db->prepare("
             SELECT id FROM roles WHERE name = ? LIMIT 1
         ");
-
-        /*$stmt->execute([$data['role']]);
-        $role = $stmt->fetch();
-
-        if (!$role) {
-            throw new RuntimeException('Invalid role.', HTTP_BAD_REQUEST);
-        }*/
 
         $stmt->execute([$data['role']]);
         $role = $stmt->fetch();
@@ -70,7 +60,6 @@ class StaffService
         // create user
         $stmt = $this->db->prepare("
             INSERT INTO users (
-                tenant_id,
                 role_id,
                 first_name,
                 last_name,
@@ -79,7 +68,6 @@ class StaffService
                 phone,
                 password_hash
             ) VALUES (
-                :tenant_id,
                 :role_id,
                 :first_name,
                 :last_name,
@@ -91,7 +79,6 @@ class StaffService
         ");
 
         $stmt->execute([
-            ':tenant_id'     => $tenantId,
             ':role_id'       => $role['id'],
             ':first_name'    => $this->aes->encrypt($data['first_name']),
             ':last_name'     => $this->aes->encrypt($data['last_name']),
@@ -106,29 +93,27 @@ class StaffService
         // create staff
         $stmt = $this->db->prepare("
             INSERT INTO staff (
-                tenant_id,
                 user_id,
                 specialization,
                 qualification,
                 license_number
             ) VALUES (
-                ?, ?, ?, ?, ?
+                ?, ?, ?, ?
             )
         ");
 
         $stmt->execute([
-            $tenantId,
             $userId,
             $data['specialization'] ?? null,
             $data['qualification'] ?? null,
             $data['license_number'] ?? null
         ]);
 
-        return $this->getStaffById($userId, $tenantId);
+        return $this->getStaffById($userId);
     }
 
     // LIST STAFF
-    public function getStaff(int $tenantId): array
+    public function getStaff(): array
     {
         $stmt = $this->db->prepare("
             SELECT
@@ -145,13 +130,12 @@ class StaffService
             FROM users u
             INNER JOIN staff s ON s.user_id = u.id
             INNER JOIN roles r ON r.id = u.role_id
-            WHERE u.tenant_id = ?
-            AND u.deleted_at IS NULL
+            WHERE u.deleted_at IS NULL
             AND s.deleted_at IS NULL
             ORDER BY u.id DESC
         ");
 
-        $stmt->execute([$tenantId]);
+        $stmt->execute();
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
@@ -165,7 +149,7 @@ class StaffService
     }
 
     // VIEW STAFF
-    public function getStaffById(int $userId, int $tenantId): array
+    public function getStaffById(int $userId): array
     {
         $stmt = $this->db->prepare("
             SELECT
@@ -183,13 +167,12 @@ class StaffService
             INNER JOIN staff s ON s.user_id = u.id
             INNER JOIN roles r ON r.id = u.role_id
             WHERE u.id = ?
-            AND u.tenant_id = ?
             AND u.deleted_at IS NULL
             AND s.deleted_at IS NULL
             LIMIT 1
         ");
 
-        $stmt->execute([$userId, $tenantId]);
+        $stmt->execute([$userId]);
         $row = $stmt->fetch();
 
         if (!$row) {
@@ -205,11 +188,9 @@ class StaffService
     }
 
     // UPDATE STAFF
-    public function updateStaff(int $id, array $data, array $authUser): array
+    public function updateStaff(int $id, array $data): array
     {
-        $tenantId = (int)$authUser['tenant_id'];
-
-        $this->getStaffById($id, $tenantId);
+        $this->getStaffById($id);
 
         $stmt = $this->db->prepare("
             UPDATE staff
@@ -227,15 +208,13 @@ class StaffService
             $id
         ]);
 
-        return $this->getStaffById($id, $tenantId);
+        return $this->getStaffById($id);
     }
 
     // DELETE STAFF (SOFT DELETE)
-    public function deleteStaff(int $id, array $authUser): void
+    public function deleteStaff(int $id): void
     {
-        $tenantId = (int)$authUser['tenant_id'];
-
-        $this->getStaffById($id, $tenantId);
+        $this->getStaffById($id);
 
         $this->db->prepare("
             UPDATE users SET deleted_at = NOW()
