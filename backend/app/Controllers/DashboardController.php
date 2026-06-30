@@ -28,11 +28,8 @@ class DashboardController
     // ========================================================
     public function getSummary(): void
     {
-        // Get tenant_id from authenticated user token
-        $tenantId = AuthMiddleware::tenantId();
-
         try {
-            $summary = $this->service->getSummary($tenantId);
+            $summary = $this->service->getSummary();
             Response::success($summary, 'Dashboard summary retrieved successfully.');
         } catch (Throwable $e) {
             error_log('[Dashboard] Error: ' . $e->getMessage());

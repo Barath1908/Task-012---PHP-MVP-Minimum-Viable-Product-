@@ -23,22 +23,21 @@ class PatientService {
     }
 
 
-    public function createPatient(array $data, int $userId, int $tenantId): int 
+    public function createPatient(array $data, int $userId): int 
     {
         $stmt = $this->db->prepare
         ("INSERT INTO patients 
-        (tenant_id, user_id, first_name, last_name, date_of_birth, 
+        (user_id, first_name, last_name, date_of_birth, 
         age, gender, phone, email,address, blood_group, allergies, 
         medical_history, emergency_contact, is_active) 
         
-          VALUES (:tenant_id, :user_id, :first_name, :last_name, 
+          VALUES (:user_id, :first_name, :last_name, 
           :date_of_birth, :age, :gender, :phone, :email, :address, 
           :blood_group, :allergies, :medical_history, :emergency_contact, 1)
 
         ");
 
         $stmt->execute([
-            ':tenant_id'         => $tenantId,
             ':user_id'           => $userId,
             ':first_name'        => $this->encryptField($data['first_name'] ?? ''),
             ':last_name'         => $this->encryptField($data['last_name'] ?? ''),
@@ -58,13 +57,12 @@ class PatientService {
     }
 
 
-    public function getAllPatients(int $tenantId): array 
+    public function getAllPatients(): array 
     {
-        $stmt = $this->db->prepare
-        ("SELECT * FROM patients
-         WHERE tenant_id = ? AND deleted_at IS NULL");
-
-        $stmt->execute([$tenantId]);
+        $stmt = $this->db->prepare(
+            "SELECT * FROM patients WHERE deleted_at IS NULL"
+        );
+        $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as &$row) 
@@ -77,17 +75,15 @@ class PatientService {
     /**
      * Fetches a single patient record by ID, isolated by tenant context.
      */
-    public function getPatientById(int $id, int $tenantId): ?array 
+    public function getPatientById(int $id): ?array 
     {
         // Use our instantiated driver connection safely
 
         $stmt = $this->db->prepare("
-            SELECT * FROM patients 
-            WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL 
-            LIMIT 1
+            SELECT * FROM patients
+            WHERE id = ? AND deleted_at IS NULL LIMIT 1
         ");
-
-        $stmt->execute([$id, $tenantId]);
+        $stmt->execute([$id]);
         $patient = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$patient) {
@@ -99,7 +95,7 @@ class PatientService {
     }
 
 
-    public function updatePatient(int $id, array $data, int $userId, int $tenantId): bool 
+    public function updatePatient(int $id, array $data, int $userId): bool 
     {
         $stmt = $this->db->prepare("
             UPDATE patients SET 
@@ -111,12 +107,11 @@ class PatientService {
                  medical_history = :medical_history, 
                 emergency_contact = :emergency_contact, updated_at = NOW()
 
-            WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NULL
+            WHERE id = :id AND deleted_at IS NULL
         ");
 
         return $stmt->execute([
             ':id'                => $id,
-            ':tenant_id'         => $tenantId,
             ':first_name'        => $this->encryptField($data['first_name'] ?? ''),
             ':last_name'         => $this->encryptField($data['last_name'] ?? ''),
             ':date_of_birth'     => $this->encryptField($data['date_of_birth'] ?? ''),
@@ -133,13 +128,12 @@ class PatientService {
         ]);
     }
 
-    public function deletePatient(int $id, int $userId, int $tenantId): bool {
+    public function deletePatient(int $id, int $userId): bool {
         $stmt = $this->db->prepare("
-            UPDATE patients SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tenant_id
+            UPDATE patients SET deleted_at = NOW() WHERE id = :id
         ");
         return $stmt->execute([
-            ':id'         => $id,
-            ':tenant_id'  => $tenantId
+            ':id'         => $id
         ]);
     }
 

@@ -2,41 +2,53 @@
 
 // ============================================================
 //  CSRF.php — CSRF Token Generation & Validation
-//  Strategy  : Session-based (token stored in PHP session)
-//  Required  : ALL POST / PUT / DELETE requests
-//  Regenerated on: app load, login, token refresh
+//  Strategy  : JWT/Token-based (stored in DB or derived from JWT)
+//  Since frontend is a separate React SPA on different origin,
+//  PHP sessions are not shared — session-based CSRF won't work.
+//  Solution  : Store CSRF token in DB against user, validate there.
 // ============================================================
 
 class CSRF
 {
     private const SESSION_KEY = '_csrf_token';
 
-    // --------------------------------------------------------
-    //  generate()
-    //  Creates a new cryptographically secure CSRF token,
-    //  stores it in the session, and returns it.
-    //  Call on: app load, after login, after token refresh.
-    // --------------------------------------------------------
+    // Generate token and store in session (kept for non-SPA use)
     public static function generate(): string
     {
         self::ensureSession();
-
         $token = bin2hex(random_bytes(32));
         $_SESSION[self::SESSION_KEY] = $token;
-
         return $token;
     }
 
     // --------------------------------------------------------
+    //  validateFromDB()
+    //  For SPA/React — validate token against DB record
+    //  Call this instead of validate() for API routes
+    // --------------------------------------------------------
+    public static function validateFromDB(string $submittedToken, int $userId, PDO $pdo): bool
+    {
+        if (empty($submittedToken)) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare(
+            "SELECT csrf_token FROM user_tokens WHERE user_id = ? AND csrf_token = ?"
+        );
+        $stmt->execute([$userId, $submittedToken]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return !empty($row);
+    }
+
+    // --------------------------------------------------------
     //  validate()
-    //  Compares submitted token against session token.
-    //  Uses hash_equals to prevent timing attacks.
-    //  Returns true on match, false otherwise.
+    //  Session-based — only works when session cookie is shared
+    //  NOT reliable for React SPA on different origin
     // --------------------------------------------------------
     public static function validate(string $submittedToken): bool
     {
         self::ensureSession();
-
         $sessionToken = $_SESSION[self::SESSION_KEY] ?? '';
 
         if (empty($sessionToken) || empty($submittedToken)) {
@@ -46,44 +58,24 @@ class CSRF
         return hash_equals($sessionToken, $submittedToken);
     }
 
-    // --------------------------------------------------------
-    //  regenerate()
-    //  Invalidates old token and issues a new one.
-    //  Always call after a successful login or token refresh
-    //  to prevent session fixation attacks.
-    // --------------------------------------------------------
     public static function regenerate(): string
     {
         self::ensureSession();
         unset($_SESSION[self::SESSION_KEY]);
-
         return self::generate();
     }
 
-    // --------------------------------------------------------
-    //  getToken()
-    //  Returns current session CSRF token.
-    //  Returns null if none has been generated yet.
-    // --------------------------------------------------------
     public static function getToken(): ?string
     {
         self::ensureSession();
         return $_SESSION[self::SESSION_KEY] ?? null;
     }
 
-    // --------------------------------------------------------
-    //  clear()
-    //  Removes CSRF token from session (on logout).
-    // --------------------------------------------------------
     public static function clear(): void
     {
         self::ensureSession();
         unset($_SESSION[self::SESSION_KEY]);
     }
-
-    // ========================================================
-    //  PRIVATE HELPERS
-    // ========================================================
 
     private static function ensureSession(): void
     {

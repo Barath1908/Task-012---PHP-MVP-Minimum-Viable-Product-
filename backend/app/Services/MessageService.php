@@ -18,11 +18,8 @@ class MessageService
 
     public function createMessage(
         array $data,
-        array $authUser
+        int $userId
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
 
         $content = $this->aes->encrypt(
             $data['content']
@@ -31,7 +28,6 @@ class MessageService
         $stmt = $this->db->prepare("
             INSERT INTO messages
             (
-                tenant_id,
                 appointment_id,
                 sender_id,
                 content,
@@ -39,12 +35,11 @@ class MessageService
             )
             VALUES
             (
-                ?, ?, ?, ?, ?
+                ?, ?, ?, ?
             )
         ");
 
         $stmt->execute([
-            $tenantId,
             $data['appointment_id'] ?? null,
             $userId,
             $content,
@@ -59,8 +54,7 @@ class MessageService
     // GET SINGLE MESSAGE
 
     public function getMessage(
-        int $messageId,
-        int $tenantId
+        int $messageId
     ): array {
 
         $stmt = $this->db->prepare("
@@ -68,13 +62,11 @@ class MessageService
             FROM messages
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $messageId,
-            $tenantId
+            $messageId
         ]);
 
         $message = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -97,8 +89,7 @@ class MessageService
     // APPOINTMENT MESSAGE HISTORY
 
     public function getAppointmentMessages(
-        int $appointmentId,
-        int $tenantId
+        int $appointmentId
     ): array {
 
         $stmt = $this->db->prepare("
@@ -106,14 +97,12 @@ class MessageService
             FROM messages
             WHERE
                 appointment_id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
             ORDER BY created_at ASC
         ");
 
         $stmt->execute([
-            $appointmentId,
-            $tenantId
+            $appointmentId
         ]);
 
         $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -133,24 +122,19 @@ class MessageService
 
     public function markAsRead(
         int $messageId,
-        array $authUser
+        int $userId
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
 
         $stmt = $this->db->prepare("
             SELECT *
             FROM messages
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $messageId,
-            $tenantId
+            $messageId
         ]);
 
         $message = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -169,12 +153,10 @@ class MessageService
                 updated_at = NOW()
             WHERE
                 id = ?
-                AND tenant_id = ?
         ");
 
         $stmt->execute([
-            $messageId,
-            $tenantId
+            $messageId
         ]);
 
         return [
@@ -187,24 +169,19 @@ class MessageService
     // SOFT DELETE MESSAGE
 
     public function deleteMessage(
-        int $messageId,
-        array $authUser
+        int $messageId
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
 
         $stmt = $this->db->prepare("
             SELECT id
             FROM messages
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $messageId,
-            $tenantId
+            $messageId
         ]);
 
         if (!$stmt->fetch()) {
@@ -221,12 +198,10 @@ class MessageService
                 updated_at = NOW()
             WHERE
                 id = ?
-                AND tenant_id = ?
         ");
 
         $stmt->execute([
-            $messageId,
-            $tenantId
+            $messageId
         ]);
 
         return [

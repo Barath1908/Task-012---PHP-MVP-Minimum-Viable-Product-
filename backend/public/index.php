@@ -19,6 +19,10 @@ require_once __DIR__ . '/../app/Helpers/Validator.php';
 require_once __DIR__ . '/../app/Middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../app/Middleware/CsrfMiddleware.php';
 
+require_once __DIR__ . '/../app/Config/masterDatabase.php';
+require_once __DIR__ . '/../app/Config/subdomainResolver.php';
+require_once __DIR__ . '/../app/Controllers/TenantController.php';
+
 // -- Session -------------------------------------------------
 
 session_name(SESSION_NAME);
@@ -26,10 +30,17 @@ session_name(SESSION_NAME);
 session_start();
 
 // Fix for WAMP — ensure Authorization header is available
-
+if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $headers = getallheaders();
+    if (isset($headers['Authorization'])) {
+        $_SERVER['HTTP_AUTHORIZATION'] = $headers['Authorization'];
+    }
+}
 
 // -- CORS Headers --------------------------------------------
-header('Access-Control-Allow-Origin: *');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+header("Access-Control-Allow-Origin: $origin");
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
 
@@ -56,8 +67,7 @@ if (!empty($input['payload'])) {
 }
 
 // Extract CSRF token from request header
-
-$csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+$csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? getallheaders()['X-CSRF-Token'] ?? getallheaders()['x-csrf-token'] ?? '';
 
 // -- CSRF Validation -----------------------------------------
 // Skip CSRF for register and login — token not yet available
@@ -66,12 +76,42 @@ $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $scriptDir     = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
 $currentUri    = '/' . trim(substr($requestUri, strlen($scriptDir)), '/');
 
-$csrfExcluded = ['/auth/register', '/auth/login'];
+$csrfExcluded = ['/auth/register', '/auth/login', '/auth/logout', '/tenant/register'];
 
 if (!in_array($currentUri, $csrfExcluded, true)) 
 {
     CsrfMiddleware::handle($csrfToken);
 }
 
+// Parse URI early for tenant route matching
+$rawUri     = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptDir  = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+$earlyUri   = '/' . trim(substr($rawUri, strlen($scriptDir)), '/');
+$earlyMethod = strtoupper($_SERVER['REQUEST_METHOD']);
+
+// ── TENANT ROUTES (no subdomain required, use master DB) ────
+
+$tenantCtrl = new TenantController();
+
+// POST /tenant/register  — landing page registration
+if ($earlyUri === '/tenant/register' && $earlyMethod === 'POST') {
+    $tenantCtrl->register($body);
+    exit;
+}
+
+// GET /tenant/check?subdomain=apollo
+if ($earlyUri === '/tenant/check' && $earlyMethod === 'GET') {
+    $tenantCtrl->checkSubdomain();
+    exit;
+}
+
+// GET /tenant/config  — React calls this on subdomain load
+if ($earlyUri === '/tenant/config' && $earlyMethod === 'GET') {
+    $tenantCtrl->getConfig();
+    exit;
+}
+
+// ── All other routes fall through to api.php ────────────────
+// api.php uses Database::getConnection() which now auto-resolves tenant DB
 
 require_once __DIR__ . '/../app/Routes/api.php';

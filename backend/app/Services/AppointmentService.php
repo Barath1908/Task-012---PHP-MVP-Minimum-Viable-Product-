@@ -28,7 +28,7 @@ class AppointmentService {
      */
 
     private function hasSchedulingConflict
-    (int $tenantId, int $providerId, string $scheduledAt, 
+    (int $providerId, string $scheduledAt, 
     int $durationMinutes, ?int $excludeAppointmentId = null): bool 
     {
         $startTime = $scheduledAt;
@@ -37,8 +37,7 @@ class AppointmentService {
         // Using unique parameter placeholders for each position to completely prevent HY093 bugs
 
         $sql = "SELECT COUNT(id) FROM appointments 
-            WHERE tenant_id = :tenant_id 
-              AND provider_id = :provider_id 
+            WHERE provider_id = :provider_id 
               AND deleted_at IS NULL
               AND (
                    (scheduled_at <= :start_time1 AND DATE_ADD
@@ -59,7 +58,6 @@ class AppointmentService {
         $stmt = $this->db->prepare($sql);
         
         $params = [
-            ':tenant_id'    => $tenantId,
             ':provider_id'  => $providerId,
             ':start_time1'  => $startTime,
             ':start_time2'  => $startTime,
@@ -79,25 +77,24 @@ class AppointmentService {
 
 
     public function createAppointment
-    (array $data, int $userId, int $tenantId): int 
+    (array $data, int $userId): int 
     {
         $duration = $data['duration_minutes'] ?? 30;
 
         if ($this->hasSchedulingConflict
-        ($tenantId, $data['provider_id'], $data['scheduled_at'], $duration)) 
+        ($data['provider_id'], $data['scheduled_at'], $duration)) 
         {
             throw new Exception("Scheduling conflict detected! The requested doctor slot is already filled.");
         }
 
         $stmt = $this->db->prepare("
             INSERT INTO appointments 
-                (tenant_id, patient_id, provider_id, scheduled_at, duration_minutes, status, reason, notes)
+                (patient_id, provider_id, scheduled_at, duration_minutes, status, reason, notes)
             VALUES 
-                (:tenant_id, :patient_id, :provider_id, :scheduled_at, :duration_minutes, :status, :reason, :notes)
+                (:patient_id, :provider_id, :scheduled_at, :duration_minutes, :status, :reason, :notes)
         ");
 
         $stmt->execute([
-            ':tenant_id'         => $tenantId,
             ':patient_id'        => $data['patient_id'],
             ':provider_id'       => $data['provider_id'],
             ':scheduled_at'      => $data['scheduled_at'],
@@ -116,11 +113,11 @@ class AppointmentService {
      */
 
     public function getAllAppointments
-    (int $tenantId, int $userId, string $userRole,
+    (int $userId, string $userRole,
      ?string $startDate = null, ?string $endDate = null): array 
      {
         $sql = "SELECT * FROM appointments 
-               WHERE tenant_id = :tenant_id AND deleted_at IS NULL";
+               WHERE deleted_at IS NULL";
 
         //ROLE-BASED VISIBILITY FILTER
         if ($userRole === 'provider' || $userRole === 'doctor') {
@@ -143,7 +140,7 @@ class AppointmentService {
         
         // Build precision binding parameters array context
 
-        $params = [':tenant_id' => $tenantId];
+        $params = [];
         
         if ($userRole === 'provider' || $userRole === 'doctor' || $userRole === 'patient') {
             $params[':user_id'] = $userId;
@@ -168,7 +165,7 @@ class AppointmentService {
      * FETCH SINGLE APPOINTMENT BY ID
      */
 
-    public function getAppointmentById(int $id, int $tenantId, int $userId, string $userRole): ?array {
+    public function getAppointmentById(int $id, int $userId, string $userRole): ?array {
         $sql = "
             SELECT 
                 a.*, 
@@ -179,7 +176,6 @@ class AppointmentService {
             FROM appointments a
             LEFT JOIN patients p ON a.patient_id = p.id
             WHERE a.id = :id 
-              AND a.tenant_id = :tenant_id 
               AND a.deleted_at IS NULL
         ";
         
@@ -194,8 +190,7 @@ class AppointmentService {
         $stmt = $this->db->prepare($sql);
         
         $params = [
-            ':id'        => $id,
-            ':tenant_id' => $tenantId
+            ':id'        => $id
         ];
         
         if ($userRole === 'provider' || $userRole === 'doctor' || $userRole === 'patient') {
@@ -226,12 +221,12 @@ class AppointmentService {
     }
 
 
-    public function updateAppointment(int $id, array $data, int $userId, int $tenantId): bool 
+    public function updateAppointment(int $id, array $data, int $userId): bool 
     {
         $duration = $data['duration_minutes'] ?? 30;
 
         if ($this->hasSchedulingConflict
-        ($tenantId, $data['provider_id'], $data['scheduled_at'], $duration, $id)) 
+        ($data['provider_id'], $data['scheduled_at'], $duration, $id)) 
         {
             throw new Exception("Scheduling conflict detected! The requested doctor slot is already filled.");
         }
@@ -241,12 +236,11 @@ class AppointmentService {
                 patient_id = :patient_id, provider_id = :provider_id, scheduled_at = :scheduled_at, 
                 duration_minutes = :duration_minutes, status = :status, reason = :reason, 
                 notes = :notes, updated_at = NOW()
-            WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NULL
+            WHERE id = :id AND deleted_at IS NULL
         ");
 
         return $stmt->execute([
             ':id'               => $id,
-            ':tenant_id'        => $tenantId,
             ':patient_id'       => $data['patient_id'],
             ':provider_id'      => $data['provider_id'],
             ':scheduled_at'     => $data['scheduled_at'],
@@ -259,15 +253,13 @@ class AppointmentService {
     }
 
 
-    public function deleteAppointment(int $id, int $userId, int $tenantId): bool 
+    public function deleteAppointment(int $id, int $userId): bool 
     {
         $stmt = $this->db->prepare("
-            UPDATE appointments SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tenant_id
+            UPDATE appointments SET deleted_at = NOW() WHERE id = :id
         ");
         return $stmt->execute([
-            ':id'         => $id,
-            ':tenant_id'  => $tenantId
-        
+            ':id'         => $id
         ]);
     }
 

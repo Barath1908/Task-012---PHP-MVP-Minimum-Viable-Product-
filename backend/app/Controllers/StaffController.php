@@ -36,8 +36,7 @@ class StaffController
 
         try {
             $result = $this->service->createStaff(
-                $body,
-                AuthMiddleware::user()
+                $body
             );
 
             Response::created($result, 'Staff created successfully.');
@@ -51,9 +50,7 @@ class StaffController
     public function list(): void
     {
         try {
-            $result = $this->service->getStaff(
-                AuthMiddleware::tenantId()
-            );
+            $result = $this->service->getStaff();
 
             Response::success($result, 'Staff fetched successfully.');
 
@@ -67,8 +64,7 @@ class StaffController
     {
         try {
             $result = $this->service->getStaffById(
-                $id,
-                AuthMiddleware::tenantId()
+                $id
             );
 
             Response::success($result, 'Staff fetched successfully.');
@@ -84,8 +80,7 @@ class StaffController
         try {
             $result = $this->service->updateStaff(
                 $id,
-                $body,
-                AuthMiddleware::user()
+                $body
             );
 
             Response::success($result, 'Staff updated successfully.');
@@ -100,8 +95,7 @@ class StaffController
     {
         try {
             $this->service->deleteStaff(
-                $id,
-                AuthMiddleware::user()
+                $id
             );
 
             Response::success([], 'Staff deleted successfully.');

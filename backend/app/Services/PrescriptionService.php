@@ -17,12 +17,8 @@ class PrescriptionService
     // CREATE PRESCRIPTION
     
     public function createPrescription(
-        array $data,
-        array $authUser
+        array $data
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
 
         $medications = $this->aes->encrypt(
             $data['medications']
@@ -35,7 +31,6 @@ class PrescriptionService
         $stmt = $this->db->prepare("
             INSERT INTO prescriptions
             (
-                tenant_id,
                 appointment_id,
                 patient_id,
                 provider_id,
@@ -45,12 +40,11 @@ class PrescriptionService
             )
             VALUES
             (
-                ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?
             )
         ");
 
         $stmt->execute([
-            $tenantId,
             $data['appointment_id'] ?? null,
             $data['patient_id'],
             $data['provider_id'],
@@ -68,8 +62,7 @@ class PrescriptionService
     // GET PRESCRIPTION
 
     public function getPrescription(
-        int $prescriptionId,
-        int $tenantId
+        int $prescriptionId
     ): array {
 
         $stmt = $this->db->prepare("
@@ -77,13 +70,11 @@ class PrescriptionService
             FROM prescriptions
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $prescriptionId,
-            $tenantId
+            $prescriptionId
         ]);
 
         $prescription = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -112,24 +103,19 @@ class PrescriptionService
     
     public function verifyPrescription(
         int $prescriptionId,
-        array $authUser
+        int $userId
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
 
         $stmt = $this->db->prepare("
             SELECT *
             FROM prescriptions
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $prescriptionId,
-            $tenantId
+            $prescriptionId
         ]);
 
         $prescription = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -148,13 +134,11 @@ class PrescriptionService
                 updated_at = NOW()
             WHERE
                 id = ?
-                AND tenant_id = ?
         ");
 
         $stmt->execute([
             $userId,
-            $prescriptionId,
-            $tenantId
+            $prescriptionId
         ]);
 
         return [
@@ -167,24 +151,19 @@ class PrescriptionService
 
     public function dispensePrescription(
         int $prescriptionId,
-        array $authUser
+        int $userId
     ): array {
-
-        $tenantId = (int)$authUser['tenant_id'];
-        $userId   = (int)$authUser['user_id'];
 
         $stmt = $this->db->prepare("
             SELECT *
             FROM prescriptions
             WHERE
                 id = ?
-                AND tenant_id = ?
                 AND deleted_at IS NULL
         ");
 
         $stmt->execute([
-            $prescriptionId,
-            $tenantId
+            $prescriptionId
         ]);
 
         $prescription = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -204,13 +183,11 @@ class PrescriptionService
                 updated_at = NOW()
             WHERE
                 id = ?
-                AND tenant_id = ?
         ");
 
         $stmt->execute([
             $userId,
-            $prescriptionId,
-            $tenantId
+            $prescriptionId
         ]);
 
         return [

@@ -14,7 +14,6 @@ class AppointmentController {
 
     public function create(array $body): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
         $data = $body['payload'] ?? $body;
 
         $validator = new Validator($data);
@@ -27,7 +26,7 @@ class AppointmentController {
         }
 
         try {
-            $appointmentId = $this->service->createAppointment($data, $userId, $tenantId);
+            $appointmentId = $this->service->createAppointment($data, $userId);
             Response::created(['appointment_id' => $appointmentId], 'Appointment booked successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
@@ -38,14 +37,13 @@ class AppointmentController {
      * Handles standard queries and multi-tenant Range Data Filters for Calendar tracking 
      */
     public function getAll(?string $startDate = null, ?string $endDate = null): void {
-        $tenantId = AuthMiddleware::tenantId();
         $userId   = AuthMiddleware::userId();
         
 
         $userRole = 'admin'; 
 
         try {
-            $appointments = $this->service->getAllAppointments($tenantId, $userId, $userRole, $startDate, $endDate);
+            $appointments = $this->service->getAllAppointments($userId, $userRole, $startDate, $endDate);
             Response::success($appointments, 'Calendar appointments data fetched successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
@@ -57,14 +55,13 @@ class AppointmentController {
      * Fetches details mapping directly to UI Tooltip hover structures securely
      */
     public function getById(int $id): void {
-        $tenantId = AuthMiddleware::tenantId(); 
         $userId   = AuthMiddleware::userId();   
         
         // Restored dynamically here as well to avoid the runtime crash loop
         $userRole = 'admin'; 
 
         try {
-            $appointment = $this->service->getAppointmentById($id, $tenantId, $userId, $userRole);
+            $appointment = $this->service->getAppointmentById($id, $userId, $userRole);
             
             if (!$appointment) {
                 Response::error('Appointment record not found or access denied.', 404);
@@ -79,7 +76,6 @@ class AppointmentController {
 
     public function update(int $id, array $body): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
         $data = $body['payload'] ?? $body;
 
         $validator = new Validator($data);
@@ -92,7 +88,7 @@ class AppointmentController {
         }
 
         try {
-            $this->service->updateAppointment($id, $data, $userId, $tenantId);
+            $this->service->updateAppointment($id, $data, $userId);
             Response::success([], 'Appointment details modified successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
@@ -101,9 +97,8 @@ class AppointmentController {
 
     public function delete(int $id): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
         try {
-            $this->service->deleteAppointment($id, $userId, $tenantId);
+            $this->service->deleteAppointment($id, $userId);
             Response::success([], 'Appointment canceled and dropped successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 

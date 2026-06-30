@@ -45,7 +45,6 @@ class AuthService
 
     public function register(array $data): array
     {
-        $tenantId  = (int)$data['tenant_id'];
         $roleId    = (int)$data['role_id'];
         $email     = strtolower(trim($data['email']));
         $emailHash = hash('sha256', $email);
@@ -53,17 +52,10 @@ class AuthService
         $lastName  = trim($data['last_name']);
         $phone     = $data['phone'] ?? null;
 
-        // 1. Tenant check
-
-        $tenant = $this->findActiveTenant($tenantId);
-        if (!$tenant) {
-            throw new RuntimeException('Invalid or inactive tenant.', HTTP_BAD_REQUEST);
-        }
-
         // 2. Email uniqueness check via hash
 
-        if ($this->emailExistsInTenant($emailHash, $tenantId)) {
-            throw new RuntimeException('Email already registered in this tenant.', HTTP_CONFLICT);
+        if ($this->emailExists($emailHash)) {
+            throw new RuntimeException('Email already registered.', HTTP_CONFLICT);
         }
 
         // 3. Role exists check
@@ -80,13 +72,12 @@ class AuthService
 
         $stmt = $this->db->prepare("
             INSERT INTO users
-                (tenant_id, role_id, first_name, last_name, email, email_hash, phone, password_hash)
+                (role_id, first_name, last_name, email, email_hash, phone, password_hash)
             VALUES
-                (:tenant_id, :role_id, :first_name, :last_name, :email, :email_hash, :phone, :password_hash)
+                (:role_id, :first_name, :last_name, :email, :email_hash, :phone, :password_hash)
         ");
 
         $stmt->execute([
-            ':tenant_id'     => $tenantId,
             ':role_id'       => $roleId,
             ':first_name'    => $this->aes->encrypt($firstName),
             ':last_name'     => $this->aes->encrypt($lastName),
@@ -105,11 +96,10 @@ class AuthService
             // Admin, Provider, Nurse, Pharmacist, Receptionist → staff table
 
             $this->db->prepare("
-                INSERT INTO staff (user_id, tenant_id, is_active)
-                VALUES (:user_id, :tenant_id, 1)
+                INSERT INTO staff (user_id, is_active)
+                VALUES (:user_id, 1)
             ")->execute([
                 ':user_id'   => $userId,
-                ':tenant_id' => $tenantId,
             ]);
         } else 
         {
@@ -118,12 +108,11 @@ class AuthService
 
             $this->db->prepare("
                 INSERT INTO patients
-                    (user_id, tenant_id, first_name, last_name, phone, email, is_active)
+                    (user_id, first_name, last_name, phone, email, is_active)
                 VALUES
-                    (:user_id, :tenant_id, :first_name, :last_name, :phone, :email, 1)
+                    (:user_id, :first_name, :last_name, :phone, :email, 1)
             ")->execute([
                 ':user_id'    => $userId,
-                ':tenant_id'  => $tenantId,
                 ':first_name' => $this->aes->encrypt($firstName),
                 ':last_name'  => $this->aes->encrypt($lastName),
                 ':phone'      => !empty($phone) ? $this->aes->encrypt($phone) : null,
@@ -139,7 +128,6 @@ class AuthService
 
         return [
             'id'        => $user['id'],
-            'tenant_id' => $user['tenant_id'],
             'role'      => $user['role'],
             'email'     => $user['email'],
             'fullName'  => $user['first_name'] . ' ' . $user['last_name'],
@@ -160,10 +148,9 @@ class AuthService
     {
         $email     = strtolower(trim($data['email']));
         $emailHash = hash('sha256', $email);
-        $tenantId  = (int)$data['tenant_id'];
 
         // 1. Find user by email hash — fast single row lookup
-        $user = $this->findUserByEmailHashAndTenant($emailHash, $tenantId);
+        $user = $this->findUserByEmailHash($emailHash);
 
         if (!$user) {
             throw new RuntimeException('Invalid credentials.', HTTP_UNAUTHORIZED);
@@ -357,7 +344,6 @@ class AuthService
             'access_token'  => $accessToken,
             'user'          => [
                 'id'        => $user['id'],
-                'tenant_id' => $user['tenant_id'],
                 'role'      => $user['role'],
                 'email'     => $user['email'],
                 'fullName'  => $user['first_name'] . ' ' . $user['last_name'],
@@ -423,7 +409,7 @@ class AuthService
         return $user;
     }
 
-    private function findUserByEmailHashAndTenant(string $emailHash, int $tenantId): array|false
+    private function findUserByEmailHash(string $emailHash): array|false
     {
         // Search by SHA-256 hash — fast and secure
 
@@ -431,10 +417,10 @@ class AuthService
             SELECT u.*, r.name AS role
             FROM users u
             JOIN roles r ON r.id = u.role_id
-            WHERE u.email_hash = ? AND u.tenant_id = ? AND u.deleted_at IS NULL
+            WHERE u.email_hash = ? AND u.deleted_at IS NULL
             LIMIT 1
         ");
-        $stmt->execute([$emailHash, $tenantId]);
+        $stmt->execute([$emailHash]);
         $user = $stmt->fetch();
 
         if ($user) {
@@ -444,26 +430,13 @@ class AuthService
         return $user;
     }
 
-    private function emailExistsInTenant(string $emailHash, int $tenantId): bool
+    private function emailExists(string $emailHash): bool
     {
         // Check by SHA-256 hash — never store or compare plain email
 
-        $stmt = $this->db->prepare("SELECT COUNT(id) FROM users WHERE email_hash = ? AND tenant_id = ? AND deleted_at IS NULL");
-        $stmt->execute([$emailHash, $tenantId]);
+        $stmt = $this->db->prepare("SELECT COUNT(id) FROM users WHERE email_hash = ? AND deleted_at IS NULL");
+        $stmt->execute([$emailHash]);
         return (int)$stmt->fetchColumn() > 0;
-    }
-
-    private function findActiveTenant(int $id): array|false
-    {
-        // tenants columns are plain text — no decryption needed
-
-        $stmt = $this->db->prepare("
-            SELECT * FROM tenants
-            WHERE id = ? AND is_active = 1 AND deleted_at IS NULL
-            LIMIT 1
-        ");
-        $stmt->execute([$id]);
-        return $stmt->fetch();
     }
 
     private function findRole(int $id): array|false

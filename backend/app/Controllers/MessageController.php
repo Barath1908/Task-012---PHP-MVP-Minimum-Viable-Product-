@@ -34,7 +34,7 @@ class MessageController
 
             $result = $this->service->createMessage(
                 $body,
-                AuthMiddleware::user()
+                AuthMiddleware::userId()
             );
 
             Response::created(
@@ -58,8 +58,7 @@ class MessageController
         try {
 
             $result = $this->service->getMessage(
-                $messageId,
-                AuthMiddleware::tenantId()
+                $messageId
             );
 
             Response::success(
@@ -85,8 +84,7 @@ class MessageController
         try {
 
             $result = $this->service->getAppointmentMessages(
-                $appointmentId,
-                AuthMiddleware::tenantId()
+                $appointmentId
             );
 
             Response::success(
@@ -113,7 +111,7 @@ class MessageController
 
             $result = $this->service->markAsRead(
                 $messageId,
-                AuthMiddleware::user()
+                AuthMiddleware::userId()
             );
 
             Response::success(
@@ -139,8 +137,7 @@ class MessageController
         try {
 
             $result = $this->service->deleteMessage(
-                $messageId,
-                AuthMiddleware::user()
+                $messageId
             );
 
             Response::success(

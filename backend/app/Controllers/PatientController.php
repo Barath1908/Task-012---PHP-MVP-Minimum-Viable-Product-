@@ -14,7 +14,6 @@ class PatientController {
 
     public function create(array $body): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
 
         $validator = new Validator($body);
         $validator->required(['first_name', 'last_name']);
@@ -22,26 +21,23 @@ class PatientController {
         if ($validator->fails()) { Response::validationError($validator->errors()); }
 
         try {
-            $patientId = $this->service->createPatient($body, $userId, $tenantId);
+            $patientId = $this->service->createPatient($body, $userId);
             Response::created(['patient_id' => $patientId], 'Patient card created successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
 
 
     public function getAll(): void {
-        $tenantId = AuthMiddleware::tenantId();
         try {
-            $patients = $this->service->getAllPatients($tenantId);
+            $patients = $this->service->getAllPatients();
             Response::success($patients, 'Patients retrieved successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
 
 
     public function getById(int $id): void {
-    $tenantId = AuthMiddleware::tenantId(); // Enforces isolation
-    
     try {
-        $patient = $this->service->getPatientById($id, $tenantId);
+        $patient = $this->service->getPatientById($id);
         
         if (!$patient) {
             Response::error('Patient record not found.', 404);
@@ -57,7 +53,6 @@ class PatientController {
 
     public function update(int $id, array $body): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
 
         $validator = new Validator($body);
         $validator->required(['first_name', 'last_name']);
@@ -65,7 +60,7 @@ class PatientController {
         if ($validator->fails()) { Response::validationError($validator->errors()); }
 
         try {
-            $this->service->updatePatient($id, $body, $userId, $tenantId);
+            $this->service->updatePatient($id, $body, $userId);
             Response::success([], 'Patient record updated successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
@@ -73,9 +68,8 @@ class PatientController {
     
     public function delete(int $id): void {
         $userId   = AuthMiddleware::userId();
-        $tenantId = AuthMiddleware::tenantId();
         try {
-            $this->service->deletePatient($id, $userId, $tenantId);
+            $this->service->deletePatient($id, $userId);
             Response::success([], 'Patient records archived successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
