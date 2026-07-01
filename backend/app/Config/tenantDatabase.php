@@ -17,8 +17,8 @@ class TenantDatabase
     public static function getInstance(string $dbName): PDO
     {
         if (!isset(self::$instances[$dbName])) {
-            $host    = $_ENV['DB_HOST']    ?? '127.0.0.1';
-            $port    = $_ENV['DB_PORT']    ?? '3306';
+            $host    = $_ENV['DB_HOST']    ?? 'localhost';
+            $port    = $_ENV['DB_PORT']    ?? '3307';
             $user    = $_ENV['DB_USER']    ?? 'root';
             $pass    = $_ENV['DB_PASS']    ?? '';
             $charset = 'utf8mb4';

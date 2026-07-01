@@ -18,8 +18,15 @@ class TenantController
     public function register(array $body): void
     {
         $validator = new Validator($body);
+
         $validator
-            ->required(['company_name', 'admin_name', 'admin_email', 'password', 'confirm_password'])
+            ->required([
+                'company_name',
+                'admin_name',
+                'admin_email',
+                'password',
+                'confirm_password'
+            ])
             ->email('admin_email')
             ->min('password', 8)
             ->confirmed('password');
@@ -34,9 +41,15 @@ class TenantController
 
         try {
             $result = $this->service->register($body);
-            Response::created($result, 'Tenant registered successfully. Your workspace is ready.');
+
+            Response::created(
+                $result,
+                'Tenant registered successfully. Your workspace is ready.'
+            );
         } catch (Throwable $e) {
-            error_log('[TenantController] ' . $e->getMessage());
+
+            error_log("[TenantController] " . $e->getMessage());
+
             Response::error($e->getMessage());
         }
     }
@@ -51,16 +64,20 @@ class TenantController
         }
 
         $master = MasterDatabase::getConnection();
-        $stmt   = $master->prepare(
+
+        $stmt = $master->prepare(
             "SELECT COUNT(id) FROM tenants WHERE subdomain = ?"
         );
+
         $stmt->execute([$subdomain]);
+
         $exists = (int)$stmt->fetchColumn() > 0;
 
         Response::success(['available' => !$exists], 'Subdomain check complete.');
     }
 
-    // GET /tenant/config  — called by React on subdomain load
+
+
     public function getConfig(): void
     {
         $tenant = SubdomainResolver::resolve();
@@ -75,5 +92,33 @@ class TenantController
             'theme'        => $tenant['theme'],
             'plan_type'    => $tenant['plan_type'],
         ], 'Tenant config loaded.');
+    }
+
+    // PUT /tenant/theme
+    public function updateTheme(array $body): void
+    {
+        AuthMiddleware::handle();
+        AuthMiddleware::allowRoles([ROLE_ADMIN]);
+
+        $tenant = SubdomainResolver::resolve();
+        if (!$tenant) {
+            Response::error('Tenant not found.', 404);
+        }
+
+        $theme = $body['theme'] ?? '';
+        if (!in_array($theme, ['dark', 'light', 'warm'], true)) {
+            Response::error('Invalid theme. Allowed values: dark, light, warm.', 400);
+        }
+
+        try {
+            $master = MasterDatabase::getConnection();
+            $stmt   = $master->prepare("UPDATE tenants SET theme = ? WHERE id = ?");
+            $stmt->execute([$theme, $tenant['id']]);
+
+            Response::success(['theme' => $theme], 'Theme updated successfully.');
+        } catch (Throwable $e) {
+            error_log('[TenantController] Update theme error: ' . $e->getMessage());
+            Response::error('Failed to update theme.');
+        }
     }
 }

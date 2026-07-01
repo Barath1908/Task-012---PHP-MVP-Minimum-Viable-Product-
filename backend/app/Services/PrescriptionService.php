@@ -50,7 +50,7 @@ class PrescriptionService
             $data['provider_id'],
             $medications,
             $instructions,
-            INV_ISSUED
+            'issued'
         ]);
 
         return [
@@ -97,6 +97,29 @@ class PrescriptionService
             );
 
         return $prescription;
+    }
+
+    // LIST PRESCRIPTIONS
+    
+    public function getPrescriptions(): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT *
+            FROM prescriptions
+            WHERE
+                deleted_at IS NULL
+            ORDER BY id DESC
+        ");
+
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$row) {
+            $row['medications'] = $this->aes->decrypt($row['medications']);
+            $row['instructions'] = $this->aes->decrypt($row['instructions'] ?? '');
+        }
+
+        return $rows;
     }
 
     // VERIFY PRESCRIPTION

@@ -77,6 +77,18 @@ class PrescriptionController
         }
     }
 
+    // LIST PRESCRIPTIONS
+    
+    public function listPrescriptions(): void
+    {
+        try {
+            $result = $this->service->getPrescriptions();
+            Response::success($result, 'Prescriptions fetched successfully.');
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), $e->getCode() ?: HTTP_BAD_REQUEST);
+        }
+    }
+
     // VERIFY PRESCRIPTION
 
     public function verifyPrescription(int $id): void
@@ -127,4 +139,3 @@ class PrescriptionController
         }
     }
 }
-
