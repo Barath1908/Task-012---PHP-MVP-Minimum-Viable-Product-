@@ -10,8 +10,8 @@ class MasterDatabase
     public static function getInstance(): PDO
     {
         if (self::$instance === null) {
-            $host    = $_ENV['DB_HOST']    ?? 'localhost';
-            $port    = $_ENV['DB_PORT']    ?? '3307';
+            $host    = $_ENV['DB_HOST']    ?? '127.0.0.1';
+            $port    = $_ENV['DB_PORT']    ?? '3306';
             $dbname  = $_ENV['DB_NAME']    ?? 'healthcare_master_db';
             $user    = $_ENV['DB_USER']    ?? 'root';
             $pass    = $_ENV['DB_PASS']    ?? '';

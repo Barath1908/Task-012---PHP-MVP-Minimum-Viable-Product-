@@ -234,8 +234,13 @@ if ($earlyUri === '/tenant/theme' && $earlyMethod === 'PUT') {
     exit;
 }
 
+// PUT /tenant/theme
+if ($earlyUri === '/tenant/theme' && $earlyMethod === 'PUT') {
+    $tenantCtrl->updateTheme($body);
+    exit;
+}
 
-
-// -- Other Routes ---------------------------------------------
+// ── All other routes fall through to api.php ────────────────
+// api.php uses Database::getConnection() which now auto-resolves tenant DB
 
 require_once __DIR__ . '/../app/Routes/api.php';
