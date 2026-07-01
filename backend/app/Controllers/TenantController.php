@@ -76,4 +76,32 @@ class TenantController
             'plan_type'    => $tenant['plan_type'],
         ], 'Tenant config loaded.');
     }
+
+    // PUT /tenant/theme
+    public function updateTheme(array $body): void
+    {
+        AuthMiddleware::handle();
+        AuthMiddleware::allowRoles([ROLE_ADMIN]);
+
+        $tenant = SubdomainResolver::resolve();
+        if (!$tenant) {
+            Response::error('Tenant not found.', 404);
+        }
+
+        $theme = $body['theme'] ?? '';
+        if (!in_array($theme, ['dark', 'light', 'warm'], true)) {
+            Response::error('Invalid theme. Allowed values: dark, light, warm.', 400);
+        }
+
+        try {
+            $master = MasterDatabase::getConnection();
+            $stmt   = $master->prepare("UPDATE tenants SET theme = ? WHERE id = ?");
+            $stmt->execute([$theme, $tenant['id']]);
+
+            Response::success(['theme' => $theme], 'Theme updated successfully.');
+        } catch (Throwable $e) {
+            error_log('[TenantController] Update theme error: ' . $e->getMessage());
+            Response::error('Failed to update theme.');
+        }
+    }
 }
