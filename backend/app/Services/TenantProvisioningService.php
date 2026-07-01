@@ -19,61 +19,76 @@ class TenantProvisioningService
     }
 
     public function register(array $data): array
-    {
-        $companyName = trim($data['company_name']);
-        $adminName   = trim($data['admin_name']);
-        $adminEmail  = strtolower(trim($data['admin_email']));
-        $password    = $data['password'];
-        $planType    = $data['plan_type'] ?? 'free';
-        $theme       = $data['theme']     ?? 'dark';
+{
+    error_log("STEP 1: register() started");
 
-        // 1. Generate subdomain
-        $subdomain = $this->generateSubdomain($companyName);
+    $companyName = trim($data['company_name']);
+    $adminName   = trim($data['admin_name']);
+    $adminEmail  = strtolower(trim($data['admin_email']));
+    $password    = $data['password'];
+    $planType    = $data['plan_type'] ?? 'free';
+    $theme       = $data['theme'] ?? 'dark';
 
-        if ($this->subdomainExists($subdomain)) {
-            $subdomain = $subdomain . rand(1000, 9999);
-        }
+    error_log("STEP 2: Data received");
 
-        // 2. Generate tenant DB name
-        $dbName = 'tenant_' . $subdomain . '_db';
+    // 1. Generate subdomain
+    $subdomain = $this->generateSubdomain($companyName);
 
-        // 3. Insert into master tenants table
-        $stmt = $this->master->prepare("
-            INSERT INTO tenants
-                (company_name, subdomain, db_name, theme, plan_type, admin_email, is_active)
-            VALUES
-                (:company_name, :subdomain, :db_name, :theme, :plan_type, :admin_email, 1)
-        ");
-
-        $stmt->execute([
-            ':company_name' => $companyName,
-            ':subdomain'    => $subdomain,
-            ':db_name'      => $dbName,
-            ':theme'        => $theme,
-            ':plan_type'    => $planType,
-            ':admin_email'  => $adminEmail,
-        ]);
-
-        $tenantId = (int)$this->master->lastInsertId();
-
-        // 4. Create the tenant database
-        $this->createTenantDatabase($dbName);
-
-        // 5. Run schema from SQL file
-        $this->runSchemaFromFile($dbName);
-
-        // 6. Create admin user in the new tenant DB
-        $this->createAdminUser($dbName, $adminName, $adminEmail, $password);
-
-        return [
-            'tenant_id' => $tenantId,
-            'subdomain' => $subdomain,
-            'db_name'   => $dbName,
-            'workspace' => $subdomain . '.localhost:3000',
-            'login_url' => 'http://' . $subdomain . '.localhost:3000/login',
-        ];
+    if ($this->subdomainExists($subdomain)) {
+        $subdomain = $subdomain . rand(1000, 9999);
     }
 
+    error_log("STEP 3: Subdomain = " . $subdomain);
+
+    // 2. Generate tenant DB name
+    $dbName = 'tenant_' . $subdomain . '_db';
+
+    error_log("STEP 4: Tenant DB Name = " . $dbName);
+
+    // 3. Insert into master tenants table
+    $stmt = $this->master->prepare("
+        INSERT INTO tenants
+            (company_name, subdomain, db_name, theme, plan_type, admin_email, is_active)
+        VALUES
+            (:company_name, :subdomain, :db_name, :theme, :plan_type, :admin_email, 1)
+    ");
+
+    $stmt->execute([
+        ':company_name' => $companyName,
+        ':subdomain'    => $subdomain,
+        ':db_name'      => $dbName,
+        ':theme'        => $theme,
+        ':plan_type'    => $planType,
+        ':admin_email'  => $adminEmail,
+    ]);
+
+    error_log("STEP 5: Tenant inserted into master database");
+
+    $tenantId = (int)$this->master->lastInsertId();
+
+    // 4. Create tenant database
+    $this->createTenantDatabase($dbName);
+
+    error_log("STEP 6: Tenant database created");
+
+    // 5. Import schema
+    $this->runSchemaFromFile($dbName);
+
+    error_log("STEP 7: Schema imported");
+
+    // 6. Create admin user
+    $this->createAdminUser($dbName, $adminName, $adminEmail, $password);
+
+    error_log("STEP 8: Admin user created");
+
+    return [
+        'tenant_id' => $tenantId,
+        'subdomain' => $subdomain,
+        'db_name'   => $dbName,
+        'workspace' => $subdomain . '.localhost:3000',
+        'login_url' => 'http://' . $subdomain . '.localhost:3000/login',
+    ];
+}
     // ── Private Helpers ──────────────────────────────────────
 
     private function generateSubdomain(string $companyName): string
@@ -94,8 +109,8 @@ class TenantProvisioningService
 
     private function getRootConnection(): PDO
     {
-        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-        $port = $_ENV['DB_PORT'] ?? '3306';
+        $host = $_ENV['DB_HOST'] ?? 'localhost';
+        $port = $_ENV['DB_PORT'] ?? '3307';
         $user = $_ENV['DB_USER'] ?? 'root';
         $pass = $_ENV['DB_PASS'] ?? '';
 
@@ -109,8 +124,8 @@ class TenantProvisioningService
 
     private function getTenantConnection(string $dbName): PDO
     {
-        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-        $port = $_ENV['DB_PORT'] ?? '3306';
+        $host = $_ENV['DB_HOST'] ?? 'localhost';
+        $port = $_ENV['DB_PORT'] ?? '3307';
         $user = $_ENV['DB_USER'] ?? 'root';
         $pass = $_ENV['DB_PASS'] ?? '';
 

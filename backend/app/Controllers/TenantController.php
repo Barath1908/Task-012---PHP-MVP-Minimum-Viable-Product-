@@ -18,8 +18,15 @@ class TenantController
     public function register(array $body): void
     {
         $validator = new Validator($body);
+
         $validator
-            ->required(['company_name', 'admin_name', 'admin_email', 'password', 'confirm_password'])
+            ->required([
+                'company_name',
+                'admin_name',
+                'admin_email',
+                'password',
+                'confirm_password'
+            ])
             ->email('admin_email')
             ->min('password', 8)
             ->confirmed('password');
@@ -34,9 +41,15 @@ class TenantController
 
         try {
             $result = $this->service->register($body);
-            Response::created($result, 'Tenant registered successfully. Your workspace is ready.');
+
+            Response::created(
+                $result,
+                'Tenant registered successfully. Your workspace is ready.'
+            );
         } catch (Throwable $e) {
-            error_log('[TenantController] ' . $e->getMessage());
+
+            error_log("[TenantController] " . $e->getMessage());
+
             Response::error($e->getMessage());
         }
     }
@@ -51,16 +64,20 @@ class TenantController
         }
 
         $master = MasterDatabase::getConnection();
-        $stmt   = $master->prepare(
+
+        $stmt = $master->prepare(
             "SELECT COUNT(id) FROM tenants WHERE subdomain = ?"
         );
+
         $stmt->execute([$subdomain]);
+
         $exists = (int)$stmt->fetchColumn() > 0;
 
         Response::success(['available' => !$exists], 'Subdomain check complete.');
     }
 
-    // GET /tenant/config  — called by React on subdomain load
+
+
     public function getConfig(): void
     {
         $tenant = SubdomainResolver::resolve();

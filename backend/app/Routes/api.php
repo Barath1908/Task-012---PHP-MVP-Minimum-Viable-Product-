@@ -88,7 +88,7 @@ if ($uri === '/dashboard/summary' && $requestMethod === 'GET') {
 if ($uri === '/patients' && $requestMethod === 'POST') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]);
     $patientCtrl->create($body);
 }
 // GET /patients (Read All)
@@ -96,7 +96,7 @@ if ($uri === '/patients' && $requestMethod === 'POST')
 if ($uri === '/patients' && $requestMethod === 'GET') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]);
     $patientCtrl->getAll();
 }
 // PUT /patients/{id} (Update)
@@ -104,7 +104,7 @@ if ($uri === '/patients' && $requestMethod === 'GET')
 if (str_starts_with($uri, '/patients/') && $requestMethod === 'PUT') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]); 
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]); 
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->update($id, $body);
 }
@@ -113,7 +113,7 @@ if (str_starts_with($uri, '/patients/') && $requestMethod === 'PUT')
 if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]); 
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]); 
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->delete($id);
 }
@@ -122,7 +122,7 @@ if (str_starts_with($uri, '/patients/') && $requestMethod === 'DELETE')
 if (str_starts_with($uri, '/patients/') && $requestMethod === 'GET') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_PROVIDER, ROLE_NURSE]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]);
     $id = (int)substr($uri, strlen('/patients/'));
     $patientCtrl->getById($id);
 }
@@ -202,7 +202,15 @@ if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET')
 }
 
 
-//  PRESCRIPTION ROUTES 
+//  PRESCRIPTION ROUTES
+
+// GET /auth/prescription
+
+if ($uri === '/auth/prescription' && $requestMethod === 'GET') 
+{
+    AuthMiddleware::handle();
+    $prescription->listPrescriptions();
+} 
 
 // POST /auth/prescription
 

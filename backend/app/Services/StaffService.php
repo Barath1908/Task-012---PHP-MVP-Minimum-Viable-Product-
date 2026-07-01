@@ -66,7 +66,8 @@ class StaffService
                 email,
                 email_hash,
                 phone,
-                password_hash
+                password_hash,
+                is_active
             ) VALUES (
                 :role_id,
                 :first_name,
@@ -74,7 +75,8 @@ class StaffService
                 :email,
                 :email_hash,
                 :phone,
-                :password_hash
+                :password_hash,
+                1
             )
         ");
 
@@ -96,9 +98,10 @@ class StaffService
                 user_id,
                 specialization,
                 qualification,
-                license_number
+                license_number,
+                is_active
             ) VALUES (
-                ?, ?, ?, ?
+                ?, ?, ?, ?, 1
             )
         ");
 
@@ -192,21 +195,86 @@ class StaffService
     {
         $this->getStaffById($id);
 
+        // Update staff table fields
         $stmt = $this->db->prepare("
             UPDATE staff
             SET
-                specialization = ?,
-                qualification = ?,
-                license_number = ?
-            WHERE user_id = ?
+                specialization = :specialization,
+                qualification = :qualification,
+                license_number = :license_number,
+                is_active = :is_active
+            WHERE user_id = :user_id
         ");
 
         $stmt->execute([
-            $data['specialization'] ?? null,
-            $data['qualification'] ?? null,
-            $data['license_number'] ?? null,
-            $id
+            ':specialization' => $data['specialization'] ?? null,
+            ':qualification'  => $data['qualification'] ?? null,
+            ':license_number' => $data['license_number'] ?? null,
+            ':is_active'       => isset($data['is_active']) ? (int)$data['is_active'] : 1,
+            ':user_id'        => $id
         ]);
+
+        // Update user table fields
+        $roleId = null;
+        if (isset($data['role'])) {
+            $stmt = $this->db->prepare("SELECT id FROM roles WHERE name = ? LIMIT 1");
+            $stmt->execute([$data['role']]);
+            $role = $stmt->fetch();
+            if ($role) {
+                $roleId = $role['id'];
+            }
+        }
+
+        $fields = [];
+        $params = [];
+
+        if (isset($data['first_name'])) {
+            $fields[] = 'first_name = :first_name';
+            $params[':first_name'] = $this->aes->encrypt($data['first_name']);
+        }
+        if (isset($data['last_name'])) {
+            $fields[] = 'last_name = :last_name';
+            $params[':last_name'] = $this->aes->encrypt($data['last_name']);
+        }
+        if (isset($data['phone'])) {
+            $fields[] = 'phone = :phone';
+            $params[':phone'] = $this->aes->encrypt($data['phone']);
+        }
+        if (isset($data['is_active'])) {
+            $fields[] = 'is_active = :is_active';
+            $params[':is_active'] = (int)$data['is_active'];
+        }
+        if (isset($data['email'])) {
+            $email = strtolower(trim($data['email']));
+            $emailHash = hash('sha256', $email);
+            
+            // Check if email already exists for a different user
+            $stmt = $this->db->prepare("
+                SELECT id FROM users
+                WHERE email_hash = ? AND id != ? AND deleted_at IS NULL
+                LIMIT 1
+            ");
+            $stmt->execute([$emailHash, $id]);
+            if ($stmt->fetch()) {
+                throw new RuntimeException('Email already exists.', HTTP_CONFLICT);
+            }
+            
+            $fields[] = 'email = :email';
+            $params[':email'] = $this->aes->encrypt($email);
+            $fields[] = 'email_hash = :email_hash';
+            $params[':email_hash'] = $emailHash;
+        }
+        if ($roleId !== null) {
+            $fields[] = 'role_id = :role_id';
+            $params[':role_id'] = $roleId;
+        }
+
+        if (!empty($fields)) {
+            $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :user_id";
+            $params[':user_id'] = $id;
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+        }
 
         return $this->getStaffById($id);
     }
