@@ -50,6 +50,14 @@ require_once __DIR__ . '/../app/Controllers/TenantController.php';
 
 session_name(SESSION_NAME);
 
+session_set_cookie_params([
+    'lifetime' => SESSION_LIFETIME,
+    'path'     => '/',
+    'secure'   => false, // Set true in production (HTTPS)
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 session_start();
 
 
@@ -104,11 +112,17 @@ if (!empty($input['payload'])) {
 
 $headers = getallheaders();
 
-$csrfToken = 
-    $_SERVER['HTTP_X_CSRF_TOKEN'] 
-    ?? $headers['X-CSRF-Token'] 
-    ?? $headers['x-csrf-token'] 
-    ?? '';
+$csrfToken = '';
+foreach ($headers as $name => $value) {
+    if (strtolower($name) === 'x-csrf-token') {
+        $csrfToken = $value;
+        break;
+    }
+}
+
+if (empty($csrfToken)) {
+    $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+}
 
 
 
@@ -135,6 +149,7 @@ $csrfExcluded = [
 
     '/auth/register',
     '/auth/login',
+    '/auth/refresh',
     '/auth/logout',
     '/tenant/register'
 
