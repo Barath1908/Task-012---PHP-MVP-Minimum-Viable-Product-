@@ -301,7 +301,7 @@ class AuthService
                 'path'     => '/',
                 'httponly' => true,
                 'secure'   => false,
-                'samesite' => 'Strict'
+                'samesite' => 'Lax'
             ]
         );
     }
@@ -336,7 +336,7 @@ class AuthService
                 'path'     => '/',
                 'httponly' => true,    // JavaScript cannot access
                 'secure'   => false,   // set true in production (HTTPS)
-                'samesite' => 'Strict' // CSRF protection
+                'samesite' => 'Lax'    // CSRF protection
             ]
         );
 
