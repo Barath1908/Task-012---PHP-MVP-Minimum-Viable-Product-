@@ -77,6 +77,7 @@ class AuthMiddleware
         }
 
         if (!in_array($authUser['role'], $roles, strict: true)) {
+            file_put_contents('c:/wamp64/www/Task-012/backend/debug_auth.log', "UserRole: " . json_encode($authUser['role']) . " | AllowedRoles: " . json_encode($roles) . "\n", FILE_APPEND);
             Response::forbidden('You do not have permission to access this resource.');
         }
     }

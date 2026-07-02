@@ -38,9 +38,8 @@ class AppointmentController {
      */
     public function getAll(?string $startDate = null, ?string $endDate = null): void {
         $userId   = AuthMiddleware::userId();
-        
-
-        $userRole = 'admin'; 
+        $user     = AuthMiddleware::user();
+        $userRole = $user['role'] ?? '';
 
         try {
             $appointments = $this->service->getAllAppointments($userId, $userRole, $startDate, $endDate);
@@ -56,9 +55,8 @@ class AppointmentController {
      */
     public function getById(int $id): void {
         $userId   = AuthMiddleware::userId();   
-        
-        // Restored dynamically here as well to avoid the runtime crash loop
-        $userRole = 'admin'; 
+        $user     = AuthMiddleware::user();
+        $userRole = $user['role'] ?? '';
 
         try {
             $appointment = $this->service->getAppointmentById($id, $userId, $userRole);

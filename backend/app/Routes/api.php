@@ -96,7 +96,7 @@ if ($uri === '/patients' && $requestMethod === 'POST')
 if ($uri === '/patients' && $requestMethod === 'GET') 
 {
     AuthMiddleware::handle();
-    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
     $patientCtrl->getAll();
 }
 // PUT /patients/{id} (Update)
@@ -138,7 +138,7 @@ if ($uri === '/appointments' && $requestMethod === 'POST')
     AuthMiddleware::handle();
 
     AuthMiddleware::allowRoles
-    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
+    ([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
 
     $appointCtrl->create($body);
 }
@@ -152,7 +152,7 @@ if ($uri === '/appointments' && $requestMethod === 'GET')
     // Added open calendar dashboard access roles support context
 
     AuthMiddleware::allowRoles
-    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
+    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
     
     // Capture optional query-string filters for calendar views (?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD)
 
@@ -169,7 +169,7 @@ if (str_starts_with($uri, '/appointments/') && $requestMethod === 'PUT')
     AuthMiddleware::handle();
 
     AuthMiddleware::allowRoles
-    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+    ([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
 
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->update($id, $body);
@@ -182,7 +182,7 @@ if (str_starts_with($uri, '/appointments/') && $requestMethod === 'DELETE')
     AuthMiddleware::handle();
 
     AuthMiddleware::allowRoles
-    ([ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
+    ([ROLE_ADMIN, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]); 
 
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->delete($id);
@@ -195,7 +195,7 @@ if (str_starts_with($uri, '/appointments/') && $requestMethod === 'GET')
     AuthMiddleware::handle();
 
     AuthMiddleware::allowRoles
-    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE]);
+    ([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
 
     $id = (int)substr($uri, strlen('/appointments/'));
     $appointCtrl->getById($id);
@@ -393,7 +393,7 @@ if ($uri === '/auth/staff'
 ) {
     AuthMiddleware::handle();
 
-    AuthMiddleware::allowRoles([ ROLE_ADMIN ]);
+    AuthMiddleware::allowRoles([ROLE_ADMIN, ROLE_RECEPTIONIST, ROLE_PROVIDER, ROLE_NURSE, ROLE_PATIENT]);
 
     $staff->list();
 }

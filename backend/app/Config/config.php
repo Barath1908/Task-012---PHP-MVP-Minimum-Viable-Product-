@@ -40,7 +40,7 @@ define('REFRESH_TOKEN_EXPIRY', (int)($_ENV['REFRESH_TOKEN_EXPIRY'] ?? 604800)); 
 
 // -- Session -------------------------------------------------
 define('SESSION_NAME',     $_ENV['SESSION_NAME']     ?? 'healthcare_session');
-define('SESSION_LIFETIME', (int)($_ENV['SESSION_LIFETIME'] ?? 900));
+define('SESSION_LIFETIME', (int)($_ENV['SESSION_LIFETIME'] ?? 2592000)); // 30 days
 
 // -- Error Reporting -----------------------------------------
 if (APP_ENV === 'development') {

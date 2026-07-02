@@ -4,7 +4,7 @@ require_once __DIR__ . '/masterDatabase.php';
 
 class SubdomainResolver
 {
-    private static ?array $currentTenant = null;
+    private static array $resolvedTenants = [];
 
     /**
      * Detects subdomain from HTTP_HOST.
@@ -36,14 +36,14 @@ class SubdomainResolver
      */
     public static function resolve(): ?array
     {
-        if (self::$currentTenant !== null) {
-            return self::$currentTenant;
-        }
-
         $subdomain = self::detect();
 
         if ($subdomain === null) {
             return null;
+        }
+
+        if (isset(self::$resolvedTenants[$subdomain])) {
+            return self::$resolvedTenants[$subdomain];
         }
 
         try {
@@ -60,7 +60,7 @@ class SubdomainResolver
                 return null;
             }
 
-            self::$currentTenant = $tenant;
+            self::$resolvedTenants[$subdomain] = $tenant;
             return $tenant;
 
         } catch (Throwable $e) {
@@ -94,6 +94,6 @@ class SubdomainResolver
 
     public static function getCurrent(): ?array
     {
-        return self::$currentTenant;
+        return self::resolve();
     }
 }
