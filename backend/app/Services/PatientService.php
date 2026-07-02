@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../Config/database.php';
 require_once __DIR__ . '/../Security/AES.php';
 require_once __DIR__ . '/../Security/Hash.php';
+require_once __DIR__ . '/../Middleware/AuthMiddleware.php';
 
 class PatientService {
     private PDO $db;
@@ -63,24 +64,20 @@ class PatientService {
 
             $userId = (int)$this->db->lastInsertId();
 
-            // 5. Generate patient_code
-            $patientCode = 'PAT-' . str_pad((string)$userId, 6, '0', STR_PAD_LEFT);
-
-            // 6. Insert into patients table
+            // 5. Insert into patients table
             $patientStmt = $this->db->prepare("
                 INSERT INTO patients 
-                    (user_id, patient_code, first_name, last_name, date_of_birth, 
+                    (user_id, first_name, last_name, date_of_birth, 
                      age, gender, phone, email, address, blood_group, allergies, 
-                     medical_history, emergency_contact, insurance_details, is_active, created_at, updated_at) 
+                     medical_history, emergency_contact, is_active, created_at, updated_at) 
                 VALUES 
-                    (:user_id, :patient_code, :first_name, :last_name, :date_of_birth, 
+                    (:user_id, :first_name, :last_name, :date_of_birth, 
                      :age, :gender, :phone, :email, :address, :blood_group, :allergies, 
-                     :medical_history, :emergency_contact, :insurance_details, 1, NOW(), NOW())
+                     :medical_history, :emergency_contact, 1, NOW(), NOW())
             ");
 
             $patientStmt->execute([
                 ':user_id'           => $userId,
-                ':patient_code'      => $patientCode,
                 ':first_name'        => $this->encryptField($data['first_name'] ?? ''),
                 ':last_name'         => $this->encryptField($data['last_name'] ?? ''),
                 ':date_of_birth'     => $this->encryptField($data['date_of_birth'] ?? ''),
@@ -93,7 +90,6 @@ class PatientService {
                 ':allergies'         => $this->encryptField($data['allergies'] ?? ''),
                 ':medical_history'   => $this->encryptField($data['medical_history'] ?? ''),
                 ':emergency_contact' => $this->encryptField($data['emergency_contact'] ?? ''),
-                ':insurance_details' => $this->encryptField($data['insurance'] ?? $data['insurance_details'] ?? ''),
             ]);
 
             $patientId = (int)$this->db->lastInsertId();
@@ -109,10 +105,21 @@ class PatientService {
 
     public function getAllPatients(): array 
     {
-        $stmt = $this->db->prepare(
-            "SELECT * FROM patients WHERE deleted_at IS NULL"
-        );
-        $stmt->execute();
+        $user = AuthMiddleware::user();
+        $role = $user['role'] ?? null;
+        $userId = $user['user_id'] ?? null;
+
+        if ($role === 'patient') {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM patients WHERE user_id = ? AND deleted_at IS NULL"
+            );
+            $stmt->execute([$userId]);
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM patients WHERE deleted_at IS NULL"
+            );
+            $stmt->execute();
+        }
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as &$row) 
@@ -183,7 +190,6 @@ class PatientService {
                     blood_group = :blood_group, allergies = :allergies,
                     medical_history = :medical_history, 
                     emergency_contact = :emergency_contact,
-                    insurance_details = :insurance_details,
                     updated_at = NOW()
                 WHERE id = :id AND deleted_at IS NULL
             ");
@@ -202,7 +208,6 @@ class PatientService {
                 ':allergies'         => $this->encryptField($data['allergies'] ?? ''),
                 ':medical_history'   => $this->encryptField($data['medical_history'] ?? ''),
                 ':emergency_contact' => $this->encryptField($data['emergency_contact'] ?? ''),
-                ':insurance_details' => $this->encryptField($data['insurance'] ?? $data['insurance_details'] ?? ''),
             ]);
 
             $this->db->commit();
@@ -247,7 +252,7 @@ class PatientService {
         $encryptedFields = [
             'first_name', 'last_name', 'date_of_birth', 'age', 'gender', 
             'phone', 'email', 'address', 'blood_group', 'allergies', 
-            'medical_history', 'emergency_contact', 'insurance_details'
+            'medical_history', 'emergency_contact'
         ];
 
         foreach ($encryptedFields as $field) {

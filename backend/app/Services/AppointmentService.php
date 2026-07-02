@@ -40,14 +40,9 @@ class AppointmentService {
             WHERE provider_id = :provider_id 
               AND deleted_at IS NULL
               AND (
-                   (scheduled_at <= :start_time1 AND DATE_ADD
-                   (scheduled_at, INTERVAL duration_minutes MINUTE) > :start_time2) OR
-
-                   (scheduled_at < :end_time1 AND DATE_ADD
-                   (scheduled_at, INTERVAL duration_minutes MINUTE) >= :end_time2) OR
-
-                   (scheduled_at >= :start_time3 AND DATE_ADD
-                   (scheduled_at, INTERVAL duration_minutes MINUTE) <= :end_time3)
+                   (scheduled_at <= :start_time1 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) > :start_time2) OR
+                   (scheduled_at < :end_time1 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) >= :end_time2) OR
+                   (scheduled_at >= :start_time3 AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) <= :end_time3)
               )
         ";
 
@@ -119,11 +114,18 @@ class AppointmentService {
         $sql = "SELECT * FROM appointments 
                WHERE deleted_at IS NULL";
 
+        $patientId = 0;
+        if ($userRole === 'patient') {
+            $pStmt = $this->db->prepare("SELECT id FROM patients WHERE user_id = ? AND deleted_at IS NULL LIMIT 1");
+            $pStmt->execute([$userId]);
+            $patientId = (int)$pStmt->fetchColumn() ?: 0;
+        }
+
         //ROLE-BASED VISIBILITY FILTER
         if ($userRole === 'provider' || $userRole === 'doctor') {
             $sql .= " AND provider_id = :user_id";
         } else if ($userRole === 'patient') {
-            $sql .= " AND patient_id = :user_id";
+            $sql .= " AND patient_id = :patient_id";
         }
 
         //DYNAMIC DATE RANGE FILTER
@@ -142,8 +144,10 @@ class AppointmentService {
 
         $params = [];
         
-        if ($userRole === 'provider' || $userRole === 'doctor' || $userRole === 'patient') {
+        if ($userRole === 'provider' || $userRole === 'doctor') {
             $params[':user_id'] = $userId;
+        } else if ($userRole === 'patient') {
+            $params[':patient_id'] = $patientId;
         }
         if ($startDate !== null) {
             $params[':start_date'] = $startDate . " 00:00:00";
@@ -166,6 +170,13 @@ class AppointmentService {
      */
 
     public function getAppointmentById(int $id, int $userId, string $userRole): ?array {
+        $patientId = 0;
+        if ($userRole === 'patient') {
+            $pStmt = $this->db->prepare("SELECT id FROM patients WHERE user_id = ? AND deleted_at IS NULL LIMIT 1");
+            $pStmt->execute([$userId]);
+            $patientId = (int)$pStmt->fetchColumn() ?: 0;
+        }
+
         $sql = "
             SELECT 
                 a.*, 
@@ -183,7 +194,7 @@ class AppointmentService {
             $sql .= " AND a.provider_id = :user_id";
         } 
         else if ($userRole === 'patient') {
-            $sql .= " AND a.patient_id = :user_id"; 
+            $sql .= " AND a.patient_id = :patient_id"; 
         }
         
         $sql .= " LIMIT 1";
@@ -193,8 +204,10 @@ class AppointmentService {
             ':id'        => $id
         ];
         
-        if ($userRole === 'provider' || $userRole === 'doctor' || $userRole === 'patient') {
+        if ($userRole === 'provider' || $userRole === 'doctor') {
             $params[':user_id'] = $userId;
+        } else if ($userRole === 'patient') {
+            $params[':patient_id'] = $patientId;
         }
         
         $stmt->execute($params);

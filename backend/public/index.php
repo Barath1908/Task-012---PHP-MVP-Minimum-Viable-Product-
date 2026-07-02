@@ -48,6 +48,12 @@ require_once __DIR__ . '/../app/Controllers/TenantController.php';
 
 // -- Session -------------------------------------------------
 
+if (!file_exists(SESSION_PATH)) {
+    mkdir(SESSION_PATH, 0777, true);
+}
+session_save_path(SESSION_PATH);
+ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+
 session_name(SESSION_NAME);
 
 session_set_cookie_params([
