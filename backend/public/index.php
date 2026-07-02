@@ -234,11 +234,6 @@ if ($earlyUri === '/tenant/theme' && $earlyMethod === 'PUT') {
     exit;
 }
 
-// PUT /tenant/theme
-if ($earlyUri === '/tenant/theme' && $earlyMethod === 'PUT') {
-    $tenantCtrl->updateTheme($body);
-    exit;
-}
 
 // ── All other routes fall through to api.php ────────────────
 // api.php uses Database::getConnection() which now auto-resolves tenant DB
