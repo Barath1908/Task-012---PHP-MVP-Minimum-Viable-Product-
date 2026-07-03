@@ -13,15 +13,13 @@ class PatientController {
     }
 
     public function create(array $body): void {
-        $userId   = AuthMiddleware::userId();
-
         $validator = new Validator($body);
         $validator->required(['first_name', 'last_name']);
 
         if ($validator->fails()) { Response::validationError($validator->errors()); }
 
         try {
-            $patientId = $this->service->createPatient($body, $userId);
+            $patientId = $this->service->createPatient($body);
             Response::created(['patient_id' => $patientId], 'Patient card created successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
@@ -52,24 +50,21 @@ class PatientController {
 
 
     public function update(int $id, array $body): void {
-        $userId   = AuthMiddleware::userId();
-
         $validator = new Validator($body);
         $validator->required(['first_name', 'last_name']);
 
         if ($validator->fails()) { Response::validationError($validator->errors()); }
 
         try {
-            $this->service->updatePatient($id, $body, $userId);
+            $this->service->updatePatient($id, $body);
             Response::success([], 'Patient record updated successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }
 
     
     public function delete(int $id): void {
-        $userId   = AuthMiddleware::userId();
         try {
-            $this->service->deletePatient($id, $userId);
+            $this->service->deletePatient($id);
             Response::success([], 'Patient records archived successfully.');
         } catch (Throwable $e) { Response::error($e->getMessage()); }
     }

@@ -65,6 +65,11 @@ if ($uri === '/auth/change-password' && $requestMethod === 'POST') {
     $auth->changePassword($body);
 }
 
+// GET /auth/csrf-token  (public — issued on app load)
+if ($uri === '/auth/csrf-token' && $requestMethod === 'GET') {
+    $auth->csrfToken();
+}
+
 // ============================================================
 //  DASHBOARD ROUTES
 //  Roles: Admin, Provider

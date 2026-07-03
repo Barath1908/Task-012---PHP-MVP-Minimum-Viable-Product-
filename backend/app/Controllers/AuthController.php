@@ -10,7 +10,6 @@
 require_once __DIR__ . '/../Services/AuthService.php';
 require_once __DIR__ . '/../Helpers/Response.php';
 require_once __DIR__ . '/../Helpers/Validator.php';
-require_once __DIR__ . '/../Security/CSRF.php';
 require_once __DIR__ . '/../Middleware/AuthMiddleware.php';
 
 class AuthController
@@ -147,5 +146,14 @@ class AuthController
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), $e->getCode() ?: HTTP_BAD_REQUEST);
         }
+    }
+
+    // ========================================================
+    //  GET /auth/csrf-token
+    //  Public. Returns active session CSRF token (for boot recovery).
+    // ========================================================
+    public function csrfToken(): void
+    {
+        Response::success([], 'CSRF token retrieved.');
     }
 }

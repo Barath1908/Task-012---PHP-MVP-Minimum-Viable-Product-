@@ -110,7 +110,7 @@ class BillingController
         }
 
         try {
-            $result = $this->service->recordPayment($body, AuthMiddleware::userId());
+            $result = $this->service->recordPayment($body);
 
             Response::success(
                 $result,
@@ -133,8 +133,7 @@ class BillingController
     try {
         $result = $this->service->updatePayment(
             $paymentId,
-            $body,
-            AuthMiddleware::userId()
+            $body
         );
 
         Response::success(
@@ -157,8 +156,7 @@ class BillingController
     try {
         $invoice = $this->service->updateInvoice(
             $id,
-            $body,
-            AuthMiddleware::userId()
+            $body
         );
 
         Response::success($invoice, "Invoice updated successfully.");
@@ -177,7 +175,7 @@ class BillingController
    public function deleteInvoice(int $id): void
    {
     try {
-        $this->service->deleteInvoice( $id, AuthMiddleware::userId() );
+        $this->service->deleteInvoice($id);
 
         Response::success(null, "Invoice deleted successfully.");
 
