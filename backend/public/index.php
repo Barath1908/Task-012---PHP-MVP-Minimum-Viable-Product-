@@ -48,11 +48,20 @@ require_once __DIR__ . '/../app/Controllers/TenantController.php';
 
 // -- Session -------------------------------------------------
 
-if (!file_exists(SESSION_PATH)) {
-    mkdir(SESSION_PATH, 0777, true);
+$sessionPath = SESSION_PATH;
+if (!is_writable($sessionPath)) {
+    $sessionPath = sys_get_temp_dir() . '/healthcare_sessions';
 }
-session_save_path(SESSION_PATH);
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+
+if (!file_exists($sessionPath)) {
+    @mkdir($sessionPath, 0777, true);
+}
+
+if (is_writable($sessionPath)) {
+    session_save_path($sessionPath);
+}
+
+ini_set('session.gc_maxlifetime', (string)SESSION_LIFETIME);
 
 session_name(SESSION_NAME);
 
