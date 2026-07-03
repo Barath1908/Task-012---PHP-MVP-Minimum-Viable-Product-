@@ -87,25 +87,6 @@ class JWT
         return $payload;
     }
 
-    // --------------------------------------------------------
-    //  getPayload()
-    //  Decodes payload WITHOUT verifying signature.
-    //  Use only for reading non-sensitive claims after validate().
-    // --------------------------------------------------------
-    public function getPayload(string $token): array
-    {
-        $parts = explode('.', $token);
-        if (count($parts) !== 3) {
-            throw new InvalidArgumentException('JWT: malformed token');
-        }
-
-        $payload = json_decode(
-            $this->base64UrlDecode($parts[1]),
-            associative: true
-        );
-
-        return $payload ?? [];
-    }
 
     // --------------------------------------------------------
     //  hashToken()

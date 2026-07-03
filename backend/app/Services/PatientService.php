@@ -24,7 +24,7 @@ class PatientService {
         return $this->aes->encrypt(trim($value));
     }
 
-    public function createPatient(array $data, int $currentUserId): int 
+    public function createPatient(array $data): int 
     {
         $this->db->beginTransaction();
         try {
@@ -145,7 +145,7 @@ class PatientService {
         return $this->decryptPatientFields($patient);
     }
 
-    public function updatePatient(int $id, array $data, int $userId): bool 
+    public function updatePatient(int $id, array $data): bool 
     {
         $this->db->beginTransaction();
         try {
@@ -219,7 +219,7 @@ class PatientService {
         }
     }
 
-    public function deletePatient(int $id, int $userId): bool 
+    public function deletePatient(int $id): bool 
     {
         $this->db->beginTransaction();
         try {

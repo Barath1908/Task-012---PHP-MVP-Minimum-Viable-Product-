@@ -113,7 +113,7 @@ class BillingService
 
     // RECORD PAYMENT
 
-    public function recordPayment(array $data, int $userId): array 
+    public function recordPayment(array $data): array 
     {
         $invoiceId = (int)$data['invoice_id'];
         $amount    = (float)$data['amount'];
@@ -191,7 +191,7 @@ class BillingService
 
     // update invoice
      
-    public function updateInvoice( int $invoiceId, array $data, int $userId ): array 
+    public function updateInvoice(int $invoiceId, array $data): array 
     {
     // ensure invoice exists
     $invoice = $this->getInvoice($invoiceId);
@@ -228,7 +228,7 @@ class BillingService
 
     // soft delete invoice
     
-    public function deleteInvoice( int $invoiceId, int $userId ): void 
+    public function deleteInvoice(int $invoiceId): void 
     {
     $this->getInvoice($invoiceId);
 
@@ -246,8 +246,7 @@ class BillingService
 
   public function updatePayment(
     int $paymentId,
-    array $data,
-    int $userId
+    array $data
 ): array
 {
     $stmt = $this->db->prepare("

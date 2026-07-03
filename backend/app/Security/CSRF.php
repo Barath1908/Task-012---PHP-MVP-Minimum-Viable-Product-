@@ -21,25 +21,6 @@ class CSRF
         return $token;
     }
 
-    // --------------------------------------------------------
-    //  validateFromDB()
-    //  For SPA/React — validate token against DB record
-    //  Call this instead of validate() for API routes
-    // --------------------------------------------------------
-    public static function validateFromDB(string $submittedToken, int $userId, PDO $pdo): bool
-    {
-        if (empty($submittedToken)) {
-            return false;
-        }
-
-        $stmt = $pdo->prepare(
-            "SELECT csrf_token FROM user_tokens WHERE user_id = ? AND csrf_token = ?"
-        );
-        $stmt->execute([$userId, $submittedToken]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return !empty($row);
-    }
 
     // --------------------------------------------------------
     //  validate()
@@ -68,7 +49,10 @@ class CSRF
     public static function getToken(): ?string
     {
         self::ensureSession();
-        return $_SESSION[self::SESSION_KEY] ?? null;
+        if (!isset($_SESSION[self::SESSION_KEY])) {
+            return self::generate();
+        }
+        return $_SESSION[self::SESSION_KEY];
     }
 
     public static function clear(): void

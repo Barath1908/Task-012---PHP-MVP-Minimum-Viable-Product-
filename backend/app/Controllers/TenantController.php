@@ -28,8 +28,7 @@ class TenantController
                 'confirm_password'
             ])
             ->email('admin_email')
-            ->min('password', 8)
-            ->confirmed('password');
+            ->min('password', 8);
 
         if ($validator->fails()) {
             Response::validationError($validator->errors());

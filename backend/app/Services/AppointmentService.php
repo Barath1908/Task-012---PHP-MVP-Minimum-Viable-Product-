@@ -71,8 +71,7 @@ class AppointmentService {
     }
 
 
-    public function createAppointment
-    (array $data, int $userId): int 
+    public function createAppointment(array $data): int 
     {
         $duration = $data['duration_minutes'] ?? 30;
 
@@ -234,7 +233,7 @@ class AppointmentService {
     }
 
 
-    public function updateAppointment(int $id, array $data, int $userId): bool 
+    public function updateAppointment(int $id, array $data): bool 
     {
         $duration = $data['duration_minutes'] ?? 30;
 
@@ -266,7 +265,7 @@ class AppointmentService {
     }
 
 
-    public function deleteAppointment(int $id, int $userId): bool 
+    public function deleteAppointment(int $id): bool 
     {
         $stmt = $this->db->prepare("
             UPDATE appointments SET deleted_at = NOW() WHERE id = :id

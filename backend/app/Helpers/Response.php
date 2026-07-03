@@ -10,7 +10,6 @@
 //  }
 // ============================================================
 
-require_once __DIR__ . '/../Security/AES.php';
 require_once __DIR__ . '/../Security/CSRF.php';
 
 class Response

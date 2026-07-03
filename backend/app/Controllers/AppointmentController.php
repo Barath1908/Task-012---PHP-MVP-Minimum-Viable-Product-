@@ -13,10 +13,7 @@ class AppointmentController {
     }
 
     public function create(array $body): void {
-        $userId   = AuthMiddleware::userId();
-        $data = $body['payload'] ?? $body;
-
-        $validator = new Validator($data);
+        $validator = new Validator($body);
         $validator->required(['patient_id', 'provider_id', 'scheduled_at'])
                   ->numeric('patient_id')
                   ->numeric('provider_id');
@@ -26,7 +23,7 @@ class AppointmentController {
         }
 
         try {
-            $appointmentId = $this->service->createAppointment($data, $userId);
+            $appointmentId = $this->service->createAppointment($body);
             Response::created(['appointment_id' => $appointmentId], 'Appointment booked successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
@@ -73,10 +70,7 @@ class AppointmentController {
     }
 
     public function update(int $id, array $body): void {
-        $userId   = AuthMiddleware::userId();
-        $data = $body['payload'] ?? $body;
-
-        $validator = new Validator($data);
+        $validator = new Validator($body);
         $validator->required(['patient_id', 'provider_id', 'scheduled_at'])
                   ->numeric('patient_id')
                   ->numeric('provider_id');
@@ -86,7 +80,7 @@ class AppointmentController {
         }
 
         try {
-            $this->service->updateAppointment($id, $data, $userId);
+            $this->service->updateAppointment($id, $body);
             Response::success([], 'Appointment details modified successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
@@ -94,9 +88,8 @@ class AppointmentController {
     }
 
     public function delete(int $id): void {
-        $userId   = AuthMiddleware::userId();
         try {
-            $this->service->deleteAppointment($id, $userId);
+            $this->service->deleteAppointment($id);
             Response::success([], 'Appointment canceled and dropped successfully.');
         } catch (Throwable $e) { 
             Response::error($e->getMessage()); 
